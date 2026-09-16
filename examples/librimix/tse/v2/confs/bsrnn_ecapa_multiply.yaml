@@ -29,6 +29,10 @@ dataset_args:
   SSA_enroll_prob: 0   # prob to add SSA on enrollment speech
 
 enable_amp: true  # false
+# model.compile() 로 학습 스텝을 감쌈. 150 에포크에 약 4.6시간 줄어듦(실측).
+# 컴파일은 run 당 1회 113초. 추론(infer.py)에는 걸지 않음.
+# 근거는 notebooks/bsrnn_compile_axes_yaml.ipynb
+compile_model: true
 exp_dir: exp/BSRNN
 gpus: '0'
 log_batch_interval: 100

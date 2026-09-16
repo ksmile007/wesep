@@ -227,10 +227,21 @@ def train(config="conf/config.yaml", **kwargs):
             logger.info(line)
 
     # ddp_model
-    model.cuda()
+    # <<<<< 고친 것 - device 를 먼저 정하고 그것으로 올림.
+    #       원본은 model.cuda() 로 올린 뒤 아래에서 device 를 또 만들어 같은 것을 두 번 말했음
+    device = torch.device("cuda")
+    model.to(device)
+    # <<<<< 더한 것 - 학습 스텝을 torch.compile 로 감쌈. 150 에포크에 약 4.6시간 줄어듦(실측).
+    #       dynamic 인자를 주지 않는 것이 핵심임 - 기본값 None 이 True 보다 컴파일이 절반이고
+    #       스텝도 빠름(실측: compile 113 vs 216초, step 554.7 vs 579.2 ms).
+    #       DDP 로 감싸기 전에 걸어야 함 - 뒤에 걸면 래퍼가 컴파일되어 DDPOptimizer 가 그래프를 또 쪼갬.
+    #       제자리 메서드라 state_dict 키가 그대로임 - average_model.py 와 기존 체크포인트가 안 깨짐.
+    #       추론(infer.py)에는 걸지 않음 - 한 번뿐이라 컴파일 113초가 이득보다 큼.
+    #       근거는 notebooks/bsrnn_compile_axes_yaml.ipynb
+    if configs.get("compile_model", False):
+        model.compile()
     ddp_model = torch.nn.parallel.DistributedDataParallel(
         model, find_unused_parameters=find_unused_parameters)
-    device = torch.device("cuda")
 
     if rank == 0:
         logger.info("<== TSE Model Loss ==>")
