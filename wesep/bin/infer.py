@@ -170,6 +170,9 @@ def infer(config="confs/conf.yaml", **kwargs):
             logger.info(
                 "Num={} | Utt={} | Target speaker={} | SI-SNR={:.2f} | SI-SNRi={:.2f}"
                 .format(total_cnt + 1, key[0], spk[0], SISNR1, delta1))
+            # <<<<< 더한 것
+            utt_rows.append({"key": key[0], "spk": spk[0],
+                             "si_snr": SISNR1, "si_snri": delta1})
             total_SISNR += SISNR1
             total_SISNRi += delta1
             total_cnt += 1
@@ -187,6 +190,9 @@ def infer(config="confs/conf.yaml", **kwargs):
             logger.info(
                 "Num={} | Utt={} | Target speaker={} | SI-SNR={:.2f} | SI-SNRi={:.2f}"
                 .format(total_cnt + 1, key[1], spk[1], SISNR2, delta2))
+            # <<<<< 더한 것
+            utt_rows.append({"key": key[1], "spk": spk[1],
+                             "si_snr": SISNR2, "si_snri": delta2})
             total_SISNR += SISNR2
             total_SISNRi += delta2
             total_cnt += 1
@@ -199,6 +205,11 @@ def infer(config="confs/conf.yaml", **kwargs):
     # generate the scp file of the enhanced speech for scoring
     if sign_save_wav:
         generate_enahnced_scp(os.path.abspath(save_audio_dir), extension="wav")
+
+    # <<<<< 더한 것 - 발화별 SI-SNR·SI-SNRi 원값. stage 6 의 scoring/ 에는 SI-SNRi 가 없음
+    utt_csv = os.path.join(configs["exp_dir"], "infer_utt_scores.csv")
+    pd.DataFrame(utt_rows).to_csv(utt_csv, index=False)
+    logger.info("Per-utterance scores saved to {}".format(utt_csv))
 
     logger.info("Time Elapsed: {:.1f}s".format(end - start))
     logger.info("Average SI-SNR: {:.2f}".format(total_SISNR / total_cnt))

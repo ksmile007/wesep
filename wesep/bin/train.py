@@ -169,6 +169,10 @@ def train(config="conf/config.yaml", **kwargs):
         online_mix=configs["dataset_args"].get("online_mix", False),
         noise_lmdb_file=configs["dataset_args"].get("noise_lmdb_file", None),
     )
+    # <<<<< 더한 것 - 검증에도 학습의 sample_num_per_epoch 과 같은 덮어쓰기 수단을 둠.
+    #       원본은 val_lines // 2 로 못 박혀 있어 debug 판에서도 검증만 통째로 돌았음
+    val_sample_num = (configs["dataset_args"].get("val_sample_num_per_epoch", 0)
+                      or val_lines // 2)
     val_dataset = Dataset(configs["data_type"],
                           configs["val_data"],
                           configs["dataset_args"],
@@ -199,7 +203,7 @@ def train(config="conf/config.yaml", **kwargs):
     else:
         sample_num_per_epoch = len(tr_lines) // 2
     epoch_iter = sample_num_per_epoch // world_size // batch_size
-    val_iter = val_lines // 2 // world_size // batch_size
+    val_iter = val_sample_num // world_size // batch_size   # <<<<< 고친 것 (원본: val_lines // 2 // …)
     if rank == 0:
         logger.info("<== Dataloaders ==>")
         logger.info("train dataloaders created")
@@ -367,8 +371,19 @@ def train(config="conf/config.yaml", **kwargs):
             plt.close()
 
         if rank == 0:
-            if (epoch % configs["save_epoch_interval"] == 0
-                    or epoch >= configs["num_epochs"] - configs["num_avg"]):
+            # <<<<< 원본 - 뒤쪽 조건이 num_avg 였음. num_avg 는 stage 4 의 평균 개수라
+            #       "몇 개를 남길까" 와 뜻이 겹쳐 있었음
+            # if (epoch % configs["save_epoch_interval"] == 0
+            #         or epoch >= configs["num_epochs"] - configs["num_avg"]):
+            # <<<<< 고친 것 - 뒤쪽을 keep_last_epochs 로 분리. or 구조는 그대로임.
+            #       첫 조건 = epoch 1 (설정이 맞는지 바로 확인할 첫 판. 재개 때는 안 걸림)
+            #       둘째   = save_epoch_interval 마다 (도중에 죽어도 재개할 지점)
+            #       셋째   = 마지막 keep_last_epochs 개 (평균·평가에 쓸 판)
+            #       키가 없으면 num_epochs 가 들어가 전부 저장되므로 기존 동작 그대로임
+            keep_last = configs.get("keep_last_epochs", configs["num_epochs"])
+            if (epoch == 1
+                    or epoch % configs["save_epoch_interval"] == 0
+                    or epoch > configs["num_epochs"] - keep_last):
                 save_checkpoint(
                     model_list,
                     optimizer_list,
