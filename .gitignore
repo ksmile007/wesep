@@ -39,3 +39,11 @@ raw_wav
 tensorboard
 **/*build*
 wespeaker_models
+
+# 로컬 실행 산출물 — upstream 에는 없는 줄
+# zip: wespeaker 배포 가중치(35M·40M). 재배포 대상 아님
+# log: run.sh 출력. 호스트명·절대경로가 박히고 실행마다 바뀜
+# examples/librimix/tse/v2/*.zip    # wespeaker 배포 가중치 35M·40M. 재배포 대상 아님
+# examples/librimix/tse/v2/*.log    # run.sh 출력. 호스트명·절대경로가 박히고 실행마다 바뀜
+*.zip
+*.log

@@ -14,7 +14,7 @@ fs=16k
 min_max=min
 noise_type="clean"
 data_type="shard" # shard/raw
-Libri2Mix_dir=/YourPATH/librimix/Libri2Mix
+Libri2Mix_dir=/workspace/DB/Libri2Mix
 mix_data_path="${Libri2Mix_dir}/wav${fs}/${min_max}"
 
 # Training related
