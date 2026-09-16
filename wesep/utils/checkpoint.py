@@ -62,11 +62,11 @@ def load_checkpoint(
 
     for model, state in zip(models, model_state):
         if isinstance(model, torch.nn.DataParallel):
-            model.module.load_state_dict(state, strict=False)
+            model.module.load_state_dict(state, strict=True)
         elif isinstance(model, torch.nn.parallel.DistributedDataParallel):
-            model.module.load_state_dict(state, strict=False)
+            model.module.load_state_dict(state, strict=True)
         else:
-            model.load_state_dict(state, strict=False)
+            model.load_state_dict(state, strict=True)
     if not only_model:
         for optimizer, state in zip(optimizers, optimizer_state):
             optimizer.load_state_dict(state)
