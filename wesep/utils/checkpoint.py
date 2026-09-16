@@ -31,7 +31,7 @@ def load_checkpoint(
     models: List[torch.nn.Module],
     optimizers: List[torch.optim.Optimizer],
     schedulers: List[BaseClass],
-    scaler: Optional[torch.cuda.amp.GradScaler],
+    scaler: Optional[torch.amp.GradScaler],    # <<<<< 고친 것 - torch.cuda.amp.GradScaler 의 부모 클래스. 둘 다 받음
     path: str,
     only_model: bool = False,
     mode: str = "all",
@@ -82,7 +82,7 @@ def save_checkpoint(
     models: List[torch.nn.Module],
     optimizers: List[torch.optim.Optimizer],
     schedulers: List[BaseClass],
-    scaler: Optional[torch.cuda.amp.GradScaler],
+    scaler: Optional[torch.amp.GradScaler],    # <<<<< 고친 것 - torch.cuda.amp.GradScaler 의 부모 클래스. 둘 다 받음
     path: str,
 ):
     if isinstance(models[0], torch.nn.DataParallel):

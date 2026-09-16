@@ -266,7 +266,8 @@ def train(config="conf/config.yaml", **kwargs):
     model_list.append(ddp_model)
     optimizer_list.append(optimizer)
     scheduler_list.append(scheduler)
-    scaler = torch.cuda.amp.GradScaler(enabled=configs["enable_amp"])
+    # <<<<< 고친 것 - torch.cuda.amp.* -> torch.amp.* (같은 구현, FutureWarning 만 사라짐). device 는 이미 있던 것을 씀
+    scaler = torch.amp.GradScaler(device.type, enabled=configs["enable_amp"])
 
     # discriminator
     discriminator = get_model(configs["model"]["discriminator"])(

@@ -270,7 +270,10 @@ def train(config="conf/config.yaml", **kwargs):
     model_list.append(ddp_model)
     optimizer_list.append(optimizer)
     scheduler_list.append(scheduler)
-    scaler = torch.cuda.amp.GradScaler(enabled=configs["enable_amp"])
+    # <<<<< 고친 것 - torch.cuda.amp.* 가 FutureWarning 을 냄. torch.amp.* 로 옮김.
+    #       두 API 는 같은 구현임 (torch.cuda.amp 쪽이 torch.amp 를 상속해 super() 를 부름).
+    #       device_type 은 위에서 이미 정해 둔 device 를 그대로 씀 - cpu 로 돌려도 깨지지 않게
+    scaler = torch.amp.GradScaler(device.type, enabled=configs["enable_amp"])
 
     # If specify checkpoint, load some info from checkpoint.
     if checkpoint is not None:

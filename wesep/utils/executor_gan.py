@@ -92,7 +92,8 @@ class ExecutorGAN:
                 one_labels = one_labels.float().to(device)
 
                 # calculate discriminator loss
-                with torch.cuda.amp.autocast(enabled=enable_amp):
+                # <<<<< 고친 것 - torch.cuda.amp.* -> torch.amp.* (같은 구현, FutureWarning 만 사라짐). device 는 이미 있던 것을 씀
+                with torch.amp.autocast(device.type, enabled=enable_amp):
                     outputs = model(features, enroll)
                     if not isinstance(outputs, (list, tuple)):
                         outputs = [outputs]
@@ -124,7 +125,8 @@ class ExecutorGAN:
                 scaler.update()
 
                 # calculate generator loss
-                with torch.cuda.amp.autocast(enabled=enable_amp):
+                # <<<<< 고친 것 - torch.cuda.amp.* -> torch.amp.* (같은 구현, FutureWarning 만 사라짐). device 는 이미 있던 것을 씀
+                with torch.amp.autocast(device.type, enabled=enable_amp):
                     se_loss = 0
                     for ii in range(len(criterion)):
                         # se_loss_weight[0]: 2-D array,loss_posi;
@@ -222,7 +224,8 @@ class ExecutorGAN:
                 enroll = enroll.float().to(device)
                 one_labels = one_labels.float().to(device)
 
-                with torch.cuda.amp.autocast(enabled=enable_amp):
+                # <<<<< 고친 것 - torch.cuda.amp.* -> torch.amp.* (같은 구현, FutureWarning 만 사라짐). device 는 이미 있던 것을 씀
+                with torch.amp.autocast(device.type, enabled=enable_amp):
                     outputs = model(features, enroll)
                     if not isinstance(outputs, (list, tuple)):
                         outputs = [outputs]
@@ -238,7 +241,8 @@ class ExecutorGAN:
                 total_dis_loss_avg = sum(dis_losses) / len(dis_losses)
 
                 # calculate generator loss
-                with torch.cuda.amp.autocast(enabled=enable_amp):
+                # <<<<< 고친 것 - torch.cuda.amp.* -> torch.amp.* (같은 구현, FutureWarning 만 사라짐). device 는 이미 있던 것을 씀
+                with torch.amp.autocast(device.type, enabled=enable_amp):
                     se_loss = criterion[0](outputs[0], targets).mean()
                     enhanced_fake_metric = discriminator(targets, outputs[0])
                     gan_loss = F.mse_loss(

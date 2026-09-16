@@ -97,7 +97,10 @@ class Executor:
                 enroll = enroll.float().to(device)
                 spk_label = spk_label.to(device)
 
-                with torch.cuda.amp.autocast(enabled=enable_amp):
+                # <<<<< 고친 것 - torch.cuda.amp.* 가 FutureWarning 을 냄. torch.amp.* 로 옮김.
+                #       두 API 는 같은 구현임 (torch.cuda.amp 쪽이 torch.amp 를 상속해 super() 를 부름).
+                #       device_type 은 위에서 이미 정해 둔 device 를 그대로 씀 - cpu 로 돌려도 깨지지 않게
+                with torch.amp.autocast(device.type, enabled=enable_amp):
                     if SSA_enroll_prob > 0:
                         if SSA_enroll_prob > random.random():
                             with torch.no_grad():
@@ -197,7 +200,10 @@ class Executor:
                 targets = targets.float().to(device)
                 enroll = enroll.float().to(device)
 
-                with torch.cuda.amp.autocast(enabled=enable_amp):
+                # <<<<< 고친 것 - torch.cuda.amp.* 가 FutureWarning 을 냄. torch.amp.* 로 옮김.
+                #       두 API 는 같은 구현임 (torch.cuda.amp 쪽이 torch.amp 를 상속해 super() 를 부름).
+                #       device_type 은 위에서 이미 정해 둔 device 를 그대로 씀 - cpu 로 돌려도 깨지지 않게
+                with torch.amp.autocast(device.type, enabled=enable_amp):
                     outputs = model(features, enroll)
                     if not isinstance(outputs, (list, tuple)):
                         outputs = [outputs]
