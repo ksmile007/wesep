@@ -1,0 +1,296 @@
+tag,cond_key,scope,dynamic,b,t,prec,tf32_lstm,num_repeat,feature_dim,lstm_n,allow_rnn,gpu,compile_s,ms_step_median,ms_step_mean,peak_GiB,graph_break,dynamo_frames,recompile_in_measure,status,error
+structure-depth,0193e3741392760c,separator,True,16,48000,fp16-mixed,True,2,128,4,False,1,25.1,299.6,302.9,7.85,4,10,0,ok,
+structure-depth,08ee96f6d9ee2d72,separator,True,16,48000,fp16-mixed,True,6,128,12,False,0,14.1,627.1,632.8,19.38,4,10,0,ok,
+structure-depth,23939f3e66182baa,separator,True,16,48000,fp16-mixed,True,4,128,8,False,3,25.9,454.4,459.4,13.62,4,10,0,ok,
+structure-depth,28d29120eb05b1af,eager,-,16,48000,fp16-mixed,True,6,128,12,False,0,0.0,615.0,620.1,19.38,0,0,0,ok,
+structure-depth,41c05d1f9cf48fc7,separator,True,16,48000,fp16-mixed,True,8,128,16,False,1,nan,nan,nan,nan,0,0,0,OOM,
+structure-depth,49f1c62d02234d04,eager,-,16,48000,fp16-mixed,True,1,128,2,False,0,0.0,263.4,263.1,4.98,0,0,0,ok,
+structure-depth,5054e48d215cdc3b,eager,-,16,48000,fp16-mixed,True,4,128,8,False,3,0.0,475.4,475.4,13.62,0,0,0,ok,
+structure-depth,6447c0f6439b6c02,eager,-,16,48000,fp16-mixed,True,2,128,4,False,1,0.0,326.1,329.6,7.86,0,0,0,ok,
+structure-depth,9dfda457b1d2bc1a,separator&spk,True,16,48000,fp16-mixed,True,2,128,4,False,1,37.5,297.5,300.9,7.85,4,11,0,ok,
+structure-depth,a3f109abbe0f5baf,separator&spk,True,16,48000,fp16-mixed,True,4,128,8,False,3,37.5,452.4,453.2,13.62,4,11,0,ok,
+structure-depth,a4532654867861d9,separator&spk,True,16,48000,fp16-mixed,True,1,128,2,False,0,36.8,251.0,254.0,4.97,3,10,0,ok,
+structure-depth,aaa0b8d214803ade,separator,True,16,48000,fp16-mixed,True,1,128,2,False,0,24.9,249.8,251.7,4.97,3,9,0,ok,
+structure-depth,bd5e4defa606a1b5,separator&spk,True,16,48000,fp16-mixed,True,8,128,16,False,1,nan,nan,nan,nan,0,0,0,OOM,
+structure-depth,e948643ac2364b5f,eager,-,16,48000,fp16-mixed,True,8,128,16,False,1,nan,nan,nan,nan,0,0,0,OOM,
+structure-width,1a75c9dea725d74a,separator,True,16,48000,fp16-mixed,True,6,256,12,False,3,nan,nan,nan,nan,0,0,0,OOM,
+structure-width,28d29120eb05b1af,eager,-,16,48000,fp16-mixed,True,6,128,12,False,1,0.0,596.0,599.7,19.46,0,0,0,ok,
+structure-width,c0b6d38415e99b03,eager,-,16,48000,fp16-mixed,True,6,256,12,False,3,nan,nan,nan,nan,0,0,0,OOM,
+structure-width,08ee96f6d9ee2d72,separator,True,16,48000,fp16-mixed,True,6,128,12,False,1,27.5,610.0,613.5,19.33,4,10,0,ok,
+structure-depth,49aa59649deb9d61,separator&spk,True,16,48000,fp16-mixed,True,6,128,12,False,0,48.3,632.5,635.9,19.38,4,11,0,ok,
+structure-allow-rnn,0193e3741392760c,separator,True,16,48000,fp16-mixed,True,2,128,4,False,1,15.2,300.5,304.7,7.85,4,10,0,ok,
+structure-width,eb46e52df367387e,eager,-,16,48000,fp16-mixed,True,6,64,12,False,0,0.0,325.9,330.3,10.39,0,0,0,ok,
+structure-width,72ffcd6ad83052f7,separator,True,16,48000,fp16-mixed,True,6,64,12,False,0,15.2,329.0,332.8,10.39,4,10,0,ok,
+axes-single,c1e1be39c9f68791,separator&spk,True,2,48000,fp16-mixed,True,6,128,12,False,1,39.2,424.6,431.1,2.77,4,11,0,ok,
+structure-who,28d29120eb05b1af,eager,-,16,48000,fp16-mixed,True,6,128,12,False,0,0.0,619.6,624.1,19.38,0,0,0,ok,
+axes-single,5ad9135d5e3e833c,separator&spk,True,16,48000,fp32,True,6,128,12,False,1,nan,nan,nan,nan,0,0,0,OOM,
+structure-who,08ee96f6d9ee2d72,separator,True,16,48000,fp16-mixed,True,6,128,12,False,0,13.7,622.0,623.6,19.38,4,10,0,ok,
+axes-single,b46ec5d8d848b06b,separator&spk,True,16,48000,bf16-mixed,True,6,128,12,False,1,38.0,624.8,626.8,19.38,4,11,0,ok,
+structure-who,41bb46259bbfdf73,spk_only,True,16,48000,fp16-mixed,True,6,128,12,False,0,24.8,622.6,627.0,19.38,0,4,0,ok,
+axes-full,4c51f38301c1f477,eager,-,1,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,142ada3245cfc12e,eager,-,1,48000,bf16-mixed,True,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,630ccaede4ac5177,eager,-,2,48000,fp32,False,6,128,12,False,1,0.0,470.3,475.8,4.96,0,0,0,ok,
+axes-full,1072f89f63261549,eager,-,2,48000,bf16-mixed,True,6,128,12,False,1,0.0,505.9,505.9,2.75,0,0,0,ok,
+axes-full,59f9cd1afefe01a5,eager,-,4,48000,fp32,False,6,128,12,False,1,0.0,549.2,557.4,9.57,0,0,0,ok,
+axes-full,66d5fe8f803e0985,eager,-,4,48000,bf16-mixed,True,6,128,12,False,1,0.0,550.0,552.4,5.12,0,0,0,ok,
+structure-who,49aa59649deb9d61,separator&spk,True,16,48000,fp16-mixed,True,6,128,12,False,0,50.4,636.5,641.8,19.38,4,11,0,ok,
+axes-full,5fef04c5f7438a91,eager,-,8,48000,fp32,False,6,128,12,False,1,0.0,785.3,790.3,18.8,0,0,0,ok,
+axes-full,06ce8040b07dd13c,eager,-,8,48000,bf16-mixed,True,6,128,12,False,1,0.0,574.5,588.1,9.88,0,0,0,ok,
+axes-full,23c05ac6d67c2fd3,eager,-,16,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 5.12 MiB is free. Including non-PyTorch memory, this process has 23.54 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.79 GiB is reserved by PyTorch "
+axes-full,27d0939e2b2efb38,eager,-,16,48000,bf16-mixed,True,6,128,12,False,1,0.0,686.2,686.3,19.38,0,0,0,ok,
+axes-full,d39c8fd92aa94483,separator,False,1,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,55e00216af984104,separator,False,1,48000,bf16-mixed,True,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,567f7d36d74738af,separator,False,2,48000,fp32,False,6,128,12,False,1,20.2,488.9,478.2,5.0,3,6,0,ok,
+axes-full,f9ac65fc95ee5e2f,separator,False,2,48000,bf16-mixed,True,6,128,12,False,1,9.4,429.6,431.1,2.77,3,6,0,ok,
+structure-allow-rnn,7c16f82f9213cac9,separator,True,16,48000,fp16-mixed,True,1,128,2,True,3,nan,nan,nan,nan,0,0,0,ERROR,"BackendCompilerFailed: backend='inductor' raised: TypeError: unsupported operand type(s) for divmod(): 'SymInt' and 'int'  Set TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=""+dynamo"
+axes-full,4a616e581383e5bb,separator,False,4,48000,fp32,False,6,128,12,False,1,8.9,495.1,500.2,9.57,3,6,0,ok,
+structure-who,451114ad2e27a933,model,True,16,48000,fp16-mixed,True,6,128,12,False,0,218.1,582.2,584.5,19.34,5,12,0,ok,
+axes-single,669e03abeecb4ee3,separator&spk,True,4,48000,fp16-mixed,True,6,128,12,False,3,39.8,502.7,506.3,5.13,4,11,0,ok,
+structure-allow-rnn,aaa0b8d214803ade,separator,True,16,48000,fp16-mixed,True,1,128,2,False,0,14.2,249.0,250.5,4.97,3,9,0,ok,
+axes-full,eb23d3b26551ebd5,separator,False,4,48000,bf16-mixed,True,6,128,12,False,1,8.5,437.0,440.7,5.13,3,6,0,ok,
+axes-full,ee5936110d4e9490,separator,False,8,48000,fp32,False,6,128,12,False,1,7.7,708.4,713.0,18.8,3,6,0,ok,
+axes-single,d2ec364a11f969fb,separator&spk,True,16,48000,fp16-mixed,False,6,128,12,False,3,40.3,610.4,611.4,19.38,4,11,0,ok,
+axes-full,2ccd7581bdd0349f,eager,-,1,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,e276d4dbb7b161e8,eager,-,1,48000,fp16-mixed,False,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,fc261d335b491b9d,separator,False,8,48000,bf16-mixed,True,6,128,12,False,1,7.8,418.1,420.1,9.88,3,6,0,ok,
+axes-full,5931a049f5f32c8c,separator,False,16,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 97.12 MiB is free. Including non-PyTorch memory, this process has 23.46 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.70 GiB is reserved by PyTorch"
+axes-full,aa424abf51e92e2b,eager,-,2,48000,fp32,True,6,128,12,False,3,0.0,366.9,368.5,4.96,0,0,0,ok,
+axes-full,f6a9dbeea7635192,eager,-,2,48000,fp16-mixed,False,6,128,12,False,3,0.0,387.7,391.8,2.75,0,0,0,ok,
+axes-full,ccc5b7c00d78d5c2,separator,False,16,48000,bf16-mixed,True,6,128,12,False,1,7.8,586.7,590.1,19.42,3,6,0,ok,
+axes-full,2af2c14ad98968d7,separator,True,1,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,3df30d15197cc772,separator,True,1,48000,bf16-mixed,True,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,05b1f3d4ad476704,eager,-,4,48000,fp32,True,6,128,12,False,3,0.0,411.1,414.3,9.57,0,0,0,ok,
+axes-full,582a41c95bb19c15,separator,True,2,48000,fp32,False,6,128,12,False,1,15.7,362.8,368.6,5.0,4,10,0,ok,
+axes-full,8df88aa3bdcd992d,eager,-,4,48000,fp16-mixed,False,6,128,12,False,3,0.0,434.4,438.5,5.12,0,0,0,ok,
+axes-full,45a4777cf8457bb6,separator,True,2,48000,bf16-mixed,True,6,128,12,False,1,14.0,400.5,410.5,2.77,4,10,0,ok,
+axes-full,30fdd28b8de45c50,eager,-,8,48000,fp32,True,6,128,12,False,3,0.0,611.5,612.5,18.8,0,0,0,ok,
+axes-full,01aeea239b1fbd94,eager,-,8,48000,fp16-mixed,False,6,128,12,False,3,0.0,443.8,451.0,9.88,0,0,0,ok,
+axes-full,03222cf7e8749e50,eager,-,16,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 17.12 MiB is free. Including non-PyTorch memory, this process has 23.53 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.78 GiB is reserved by PyTorch"
+axes-full,15b11d6b647f86a0,separator,True,4,48000,fp32,False,6,128,12,False,1,16.0,471.5,475.4,9.57,4,10,0,ok,
+axes-full,65d46e1c6d979945,eager,-,16,48000,fp16-mixed,False,6,128,12,False,3,0.0,615.6,617.2,19.38,0,0,0,ok,
+axes-full,f6021690b274bf81,separator,False,1,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,11499bd5af030699,separator,False,1,48000,fp16-mixed,False,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,6c742a6b88001208,separator,True,4,48000,bf16-mixed,True,6,128,12,False,1,13.2,423.1,427.3,5.13,4,10,0,ok,
+axes-full,eef8dd003c7c122c,separator,False,2,48000,fp32,True,6,128,12,False,3,7.3,407.4,405.9,5.0,3,6,0,ok,
+axes-full,d5d5912e4f227d7c,separator,False,2,48000,fp16-mixed,False,6,128,12,False,3,7.6,408.6,406.3,2.77,3,6,0,ok,
+axes-full,71f897acfd7993e9,separator,True,8,48000,fp32,False,6,128,12,False,1,15.1,713.8,718.1,18.8,4,10,0,ok,
+axes-full,c27e969b73db303c,separator,False,4,48000,fp32,True,6,128,12,False,3,7.6,404.3,408.0,9.57,3,6,0,ok,
+axes-full,5deb9f622f7a4bae,separator,True,8,48000,bf16-mixed,True,6,128,12,False,1,13.7,450.8,450.1,9.88,4,10,0,ok,
+axes-full,2dda59654098e3f4,separator,True,16,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 97.12 MiB is free. Including non-PyTorch memory, this process has 23.46 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.70 GiB is reserved by PyTorch"
+axes-full,4333ab12bd4ee348,separator,False,4,48000,fp16-mixed,False,6,128,12,False,3,7.9,419.5,420.2,5.13,3,6,0,ok,
+structure-allow-rnn,4178fa184f7970e6,separator,True,16,48000,fp16-mixed,True,2,128,4,True,0,nan,nan,nan,nan,0,0,0,ERROR,"BackendCompilerFailed: backend='inductor' raised: TypeError: unsupported operand type(s) for divmod(): 'SymInt' and 'int'  Set TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=""+dynamo"
+axes-full,4de1fc185143c5c8,separator,False,8,48000,fp32,True,6,128,12,False,3,7.5,593.8,593.5,18.8,3,6,0,ok,
+axes-full,63d23db5637ca67e,separator,True,16,48000,bf16-mixed,True,6,128,12,False,1,13.9,603.9,608.1,19.42,4,10,0,ok,
+axes-full,d4a9056d403e8450,separator&spk,False,1,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7a2bb555db80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,7b0fbb7b93018112,separator&spk,False,1,48000,bf16-mixed,True,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7a2bb555db80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-base,28d29120eb05b1af,eager,-,16,48000,fp16-mixed,True,6,128,12,False,0,0.0,626.3,626.8,19.4,0,0,0,ok,
+axes-full,e23b883079ad8068,separator,False,8,48000,fp16-mixed,False,6,128,12,False,3,8.4,428.9,436.7,9.88,3,6,0,ok,
+axes-full,a1906b457d4c8d43,separator,False,16,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 111.12 MiB is free. Including non-PyTorch memory, this process has 23.44 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.69 GiB is reserved by PyTorc"
+axes-base,af3bba66ec7b27cc,separator,False,16,48000,fp16-mixed,True,6,128,12,False,0,8.8,628.2,631.0,19.38,3,6,0,ok,
+axes-full,47a369263bff72fb,separator,False,16,48000,fp16-mixed,False,6,128,12,False,3,8.2,597.6,600.8,19.42,3,6,0,ok,
+axes-full,ed4618878353e92c,separator,True,1,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,d3a74643b513744c,separator,True,1,48000,fp16-mixed,False,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-base,08ee96f6d9ee2d72,separator,True,16,48000,fp16-mixed,True,6,128,12,False,0,14.7,614.8,620.2,19.38,4,10,0,ok,
+axes-full,b1d598095c4696b3,separator,True,2,48000,fp32,True,6,128,12,False,3,14.2,375.9,378.9,5.0,4,10,0,ok,
+axes-full,0110583efb2242d8,separator,True,2,48000,fp16-mixed,False,6,128,12,False,3,13.6,416.2,416.4,2.77,4,10,0,ok,
+axes-full,30cb926d043b3b2a,separator,True,4,48000,fp32,True,6,128,12,False,3,13.8,408.4,411.8,9.57,4,10,0,ok,
+axes-full,8d114a06605324f9,separator,True,4,48000,fp16-mixed,False,6,128,12,False,3,14.5,443.2,450.1,5.13,4,10,0,ok,
+axes-full,a749ce42cb79f661,separator,True,8,48000,fp32,True,6,128,12,False,3,15.3,590.8,595.3,18.8,4,10,0,ok,
+axes-full,6d69ddbbf13ac8f3,separator,True,8,48000,fp16-mixed,False,6,128,12,False,3,14.0,426.0,431.5,9.88,4,10,0,ok,
+axes-full,b19306b74c0ea9bb,separator,True,16,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 109.12 MiB is free. Including non-PyTorch memory, this process has 23.44 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.69 GiB is reserved by PyTorc"
+axes-full,f4895262b3c11cd0,separator,True,16,48000,fp16-mixed,False,6,128,12,False,3,14.4,599.3,606.8,19.42,4,10,0,ok,
+axes-full,ec9c4b2deb7e344d,separator&spk,False,1,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x76b3cec5bb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,5c0d1d5a66f80ac5,separator&spk,False,1,48000,fp16-mixed,False,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x76b3cec5bb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,c10fe46044af016c,separator&spk,False,2,48000,fp32,False,6,128,12,False,1,20.2,457.8,6285.7,4.95,3,39,22,ok,
+axes-base,77e4cffcec2165a0,separator&spk,False,16,48000,fp16-mixed,True,6,128,12,False,0,24.7,618.5,7913.3,19.34,3,39,22,ok,
+axes-base,49aa59649deb9d61,separator&spk,True,16,48000,fp16-mixed,True,6,128,12,False,0,43.3,613.4,616.0,19.38,4,11,0,ok,
+axes-full,1dae39da0319d374,separator&spk,False,2,48000,fp32,True,6,128,12,False,3,21.2,413.4,6338.6,4.95,3,39,22,ok,
+axes-full,b5cc5bb61c1f93fb,separator&spk,False,2,48000,bf16-mixed,True,6,128,12,False,1,24.2,445.1,7406.8,2.77,3,39,22,ok,
+axes-full,c46069ad4eb54250,separator&spk,False,2,48000,fp16-mixed,False,6,128,12,False,3,24.0,418.6,7085.4,2.76,3,39,22,ok,
+axes-full,59b7e89a02177550,separator&spk,False,4,48000,fp32,False,6,128,12,False,1,24.9,526.2,7434.9,9.57,3,39,22,ok,
+axes-full,ab9cbba35a314480,separator&spk,False,4,48000,fp32,True,6,128,12,False,3,24.0,426.6,7459.5,9.57,3,39,22,ok,
+axes-full,9251039680abfa67,separator&spk,False,4,48000,bf16-mixed,True,6,128,12,False,1,26.3,457.0,8137.7,5.13,3,39,22,ok,
+axes-base,faed911ca8713c02,model,False,16,48000,fp16-mixed,True,6,128,12,False,0,125.0,599.9,20172.2,19.35,35,40,22,ok,
+axes-full,00a370fc9ae70d54,separator&spk,False,4,48000,fp16-mixed,False,6,128,12,False,3,27.0,505.8,8209.0,5.13,3,39,22,ok,
+axes-base,451114ad2e27a933,model,True,16,48000,fp16-mixed,True,6,128,12,False,0,225.6,576.2,578.0,19.44,5,12,0,ok,
+axes-single,d4345b8ab0bc1f95,separator&spk,True,1,48000,fp16-mixed,True,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7595a1ddcb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-single,71e325c7a21acf82,separator&spk,True,8,48000,fp16-mixed,True,6,128,12,False,0,48.7,460.5,466.1,9.94,4,11,0,ok,
+axes-single,49aa59649deb9d61,separator&spk,True,16,48000,fp16-mixed,True,6,128,12,False,0,47.4,615.9,620.0,19.38,4,11,0,ok,
+axes-full,f3de59ed3bbc1667,eager,-,1,48000,bf16-mixed,False,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,db5599788932fd90,separator&spk,False,8,48000,fp32,False,6,128,12,False,1,28.9,734.1,8815.3,18.8,3,39,22,ok,
+axes-full,5cf89a8671146b01,eager,-,1,48000,fp16-mixed,True,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,1f286b431d14bbd9,eager,-,2,48000,bf16-mixed,False,6,128,12,False,0,0.0,424.5,430.0,2.75,0,0,0,ok,
+axes-full,0775796c84a24f32,eager,-,2,48000,fp16-mixed,True,6,128,12,False,0,0.0,432.1,441.2,2.75,0,0,0,ok,
+axes-full,ecb0db67f4a126b3,eager,-,4,48000,bf16-mixed,False,6,128,12,False,0,0.0,448.0,455.9,5.12,0,0,0,ok,
+axes-full,75c8188c1cc0dd86,eager,-,4,48000,fp16-mixed,True,6,128,12,False,0,0.0,447.6,453.5,5.12,0,0,0,ok,
+axes-full,dd5db3b51d62136c,eager,-,8,48000,bf16-mixed,False,6,128,12,False,0,0.0,452.8,462.1,9.88,0,0,0,ok,
+axes-full,bccfcf3f8df284df,eager,-,8,48000,fp16-mixed,True,6,128,12,False,0,0.0,447.2,463.8,9.88,0,0,0,ok,
+axes-full,2755227f5fda5938,eager,-,16,48000,bf16-mixed,False,6,128,12,False,0,0.0,653.1,655.9,19.38,0,0,0,ok,
+axes-full,28d29120eb05b1af,eager,-,16,48000,fp16-mixed,True,6,128,12,False,0,0.0,624.5,628.0,19.38,0,0,0,ok,
+axes-full,22ae5fd12865ab12,separator,False,1,48000,bf16-mixed,False,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,023bb648d2002ce7,separator&spk,False,8,48000,fp32,True,6,128,12,False,3,28.4,601.5,8524.0,18.8,3,39,22,ok,
+axes-full,c5a34c908ea401f1,separator,False,1,48000,fp16-mixed,True,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,d92905117e2a073c,separator,False,2,48000,bf16-mixed,False,6,128,12,False,0,11.1,423.9,431.3,2.81,3,6,0,ok,
+axes-full,0b4edf734b19458e,separator,False,2,48000,fp16-mixed,True,6,128,12,False,0,10.4,416.4,428.0,2.77,3,6,0,ok,
+axes-full,a1adf7424daada6d,separator,False,4,48000,bf16-mixed,False,6,128,12,False,0,11.2,429.3,436.6,5.13,3,6,0,ok,
+axes-full,c3dd0a629d55e725,separator,False,4,48000,fp16-mixed,True,6,128,12,False,0,10.6,432.6,442.1,5.13,3,6,0,ok,
+axes-full,45f7bdfbff6d1dd8,separator,False,8,48000,bf16-mixed,False,6,128,12,False,0,11.0,428.5,441.3,9.88,3,6,0,ok,
+axes-full,8aa9c3c8e5aecd4c,separator,False,8,48000,fp16-mixed,True,6,128,12,False,0,11.6,437.0,443.3,9.88,3,6,0,ok,
+axes-full,bfd863bf32039df7,separator&spk,False,8,48000,bf16-mixed,True,6,128,12,False,1,31.6,495.4,9783.5,9.88,3,39,22,ok,
+axes-full,f55252c9de0c611c,separator,False,16,48000,bf16-mixed,False,6,128,12,False,0,11.4,621.2,623.1,19.38,3,6,0,ok,
+axes-full,5f9af9e44b038b33,separator&spk,False,16,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 23.12 MiB is free. Including non-PyTorch memory, this process has 23.53 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.72 GiB is reserved by PyTorch"
+axes-full,af3bba66ec7b27cc,separator,False,16,48000,fp16-mixed,True,6,128,12,False,0,11.3,625.3,628.2,19.38,3,6,0,ok,
+axes-full,087e16af16441ad6,separator,True,1,48000,bf16-mixed,False,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,9b3700ea290a3b02,separator,True,1,48000,fp16-mixed,True,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 3072])"
+axes-full,4bb4d0c6969d0952,separator,True,2,48000,bf16-mixed,False,6,128,12,False,0,20.1,416.0,421.5,2.8,4,10,0,ok,
+axes-full,a660147b8bd9e8ec,separator,True,2,48000,fp16-mixed,True,6,128,12,False,0,18.6,435.2,447.1,2.77,4,10,0,ok,
+axes-full,ef80925d91733303,separator,True,4,48000,bf16-mixed,False,6,128,12,False,0,21.4,436.2,442.3,5.13,4,10,0,ok,
+axes-full,6b7bf75efd4e5e29,separator&spk,False,8,48000,fp16-mixed,False,6,128,12,False,3,30.3,441.5,9375.1,9.88,3,39,22,ok,
+axes-full,3815a79c1201fa78,separator,True,4,48000,fp16-mixed,True,6,128,12,False,0,18.5,431.1,437.4,5.13,4,10,0,ok,
+axes-full,6e77ca5aa1c028db,separator&spk,False,16,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 55.12 MiB is free. Including non-PyTorch memory, this process has 23.50 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.70 GiB is reserved by PyTorch"
+axes-full,8118aeef354e9912,separator,True,8,48000,bf16-mixed,False,6,128,12,False,0,18.5,448.7,457.3,9.87,4,10,0,ok,
+axes-full,cb542517d1fd561b,separator,True,8,48000,fp16-mixed,True,6,128,12,False,0,19.7,433.0,442.2,9.87,4,10,0,ok,
+axes-full,6c96eb7a7f6c8ddb,separator,True,16,48000,bf16-mixed,False,6,128,12,False,0,18.1,631.8,637.4,19.38,4,10,0,ok,
+axes-full,08ee96f6d9ee2d72,separator,True,16,48000,fp16-mixed,True,6,128,12,False,0,18.7,623.7,626.2,19.38,4,10,0,ok,
+axes-full,43db10a910b1228a,separator&spk,False,1,48000,bf16-mixed,False,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7595a1ddcb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,0f5f97aa5dd2d90d,separator&spk,False,1,48000,fp16-mixed,True,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7595a1ddcb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,f4abda9819c1c6b9,separator&spk,False,16,48000,bf16-mixed,True,6,128,12,False,1,34.6,619.1,10551.5,19.45,3,39,22,ok,
+axes-full,1e231b1d2121be4a,separator&spk,True,1,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7a2bb555db80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,d6c3331d6baf2c9b,separator&spk,True,1,48000,bf16-mixed,True,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7a2bb555db80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,600c83adf62978a1,separator&spk,True,2,48000,fp32,False,6,128,12,False,1,47.1,378.7,387.8,5.02,4,11,0,ok,
+axes-full,055f4564ba9d0635,separator&spk,True,2,48000,bf16-mixed,True,6,128,12,False,1,50.0,402.8,407.1,2.77,4,11,0,ok,
+axes-full,51309dd3823ed564,separator&spk,False,16,48000,fp16-mixed,False,6,128,12,False,3,34.0,635.7,10377.7,19.45,3,39,22,ok,
+axes-full,849edadfde2482f4,separator&spk,True,4,48000,fp32,False,6,128,12,False,1,47.6,475.5,480.7,9.57,4,11,0,ok,
+axes-full,596270b155e0f40b,separator&spk,True,1,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x76b3cec5bb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,895cda47f9f53b13,separator&spk,True,1,48000,fp16-mixed,False,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x76b3cec5bb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,d7a28789c11dc6ea,separator&spk,True,4,48000,bf16-mixed,True,6,128,12,False,1,50.7,422.6,430.4,5.13,4,11,0,ok,
+axes-full,cd6d44b26ba38ac8,separator&spk,False,2,48000,bf16-mixed,False,6,128,12,False,0,29.8,430.2,8743.2,2.83,3,39,22,ok,
+axes-full,8867a728581fad8b,separator&spk,True,2,48000,fp32,True,6,128,12,False,3,47.1,401.9,409.8,5.03,4,11,0,ok,
+axes-full,e6784d99f173c4a8,separator&spk,True,8,48000,fp32,False,6,128,12,False,1,47.5,717.6,719.7,18.8,4,11,0,ok,
+axes-full,719c46bae45f7d42,separator&spk,True,2,48000,fp16-mixed,False,6,128,12,False,3,52.6,460.8,463.4,2.77,4,11,0,ok,
+axes-full,14de09f0eb881bdc,separator&spk,True,8,48000,bf16-mixed,True,6,128,12,False,1,53.8,447.3,455.8,9.88,4,11,0,ok,
+axes-full,d8865c46afe22d40,separator&spk,True,4,48000,fp32,True,6,128,12,False,3,48.7,420.2,421.2,9.57,4,11,0,ok,
+axes-full,477c4c46d8787161,separator&spk,True,16,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 9.12 MiB is free. Including non-PyTorch memory, this process has 23.54 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.72 GiB is reserved by PyTorch "
+axes-full,e18bb197043a8430,separator&spk,True,4,48000,fp16-mixed,False,6,128,12,False,3,52.7,405.7,410.1,5.13,4,11,0,ok,
+axes-full,b46ec5d8d848b06b,separator&spk,True,16,48000,bf16-mixed,True,6,128,12,False,1,53.2,597.9,602.0,19.45,4,11,0,ok,
+axes-full,d3f40f1ea6f24f1f,model,False,1,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7a2bb555db80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,ad59c0ad44e3b2f7,model,False,1,48000,bf16-mixed,True,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7a2bb555db80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,589f889683cf065a,separator&spk,True,8,48000,fp32,True,6,128,12,False,3,46.6,585.8,590.8,18.8,4,11,0,ok,
+axes-full,4c53c27e14276fa3,separator&spk,True,8,48000,fp16-mixed,False,6,128,12,False,3,51.5,405.5,406.5,9.88,4,11,0,ok,
+axes-full,5ad9135d5e3e833c,separator&spk,True,16,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 41.12 MiB is free. Including non-PyTorch memory, this process has 23.51 GiB memory in use. Of the allocated memory 20.41 GiB is allocated by PyTorch, and 2.70 GiB is reserved by PyTorch"
+axes-full,919b9bfdc024beeb,separator&spk,False,2,48000,fp16-mixed,True,6,128,12,False,0,31.8,487.5,9112.2,2.77,3,39,22,ok,
+axes-full,d2ec364a11f969fb,separator&spk,True,16,48000,fp16-mixed,False,6,128,12,False,3,51.9,593.1,595.7,19.44,4,11,0,ok,
+axes-full,9e34e5668c2b8abc,model,False,1,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x76b3cec5bb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,8096feb7248e4b2d,model,False,1,48000,fp16-mixed,False,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x76b3cec5bb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,6aa7546e7a26e8b5,separator&spk,False,4,48000,bf16-mixed,False,6,128,12,False,0,32.6,467.2,9335.4,5.13,3,39,22,ok,
+axes-full,bb9017a4afb83888,model,False,2,48000,fp32,False,6,128,12,False,1,125.7,420.0,21133.9,5.07,35,40,22,ok,
+axes-full,7789006f8f2c0a35,separator&spk,False,4,48000,fp16-mixed,True,6,128,12,False,0,35.2,472.7,9489.8,5.13,3,39,22,ok,
+axes-full,b2ae9823c8867ae6,model,False,2,48000,fp32,True,6,128,12,False,3,125.8,430.9,20947.8,5.07,35,40,22,ok,
+axes-full,ce2c20a2fc118a93,separator&spk,False,8,48000,bf16-mixed,False,6,128,12,False,0,38.1,527.5,10427.5,9.88,3,39,22,ok,
+axes-full,923ccdc8857eec32,separator&spk,False,8,48000,fp16-mixed,True,6,128,12,False,0,38.9,463.4,10845.7,9.87,3,39,22,ok,
+axes-full,3b8844956c90633e,model,False,2,48000,bf16-mixed,True,6,128,12,False,1,148.0,465.8,25495.6,2.77,35,40,22,ok,
+axes-full,8288fdd2cd91127b,model,False,2,48000,fp16-mixed,False,6,128,12,False,3,147.6,421.7,25187.4,2.76,35,40,22,ok,
+axes-full,30a418214fa8e6bc,separator&spk,False,16,48000,bf16-mixed,False,6,128,12,False,0,40.9,626.3,11926.1,19.39,3,39,22,ok,
+axes-full,77e4cffcec2165a0,separator&spk,False,16,48000,fp16-mixed,True,6,128,12,False,0,43.2,619.2,12133.5,19.42,3,39,22,ok,
+axes-full,e2397b472a9614e5,separator&spk,True,1,48000,bf16-mixed,False,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7595a1ddcb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,d4345b8ab0bc1f95,separator&spk,True,1,48000,fp16-mixed,True,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7595a1ddcb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,e54eec39f71bc4da,separator&spk,True,2,48000,bf16-mixed,False,6,128,12,False,0,65.0,417.6,429.5,2.83,4,11,0,ok,
+axes-full,54df9bd237ea5160,model,False,4,48000,fp32,False,6,128,12,False,1,148.1,491.6,25012.9,9.59,35,40,22,ok,
+axes-full,c1e1be39c9f68791,separator&spk,True,2,48000,fp16-mixed,True,6,128,12,False,0,62.4,410.2,425.0,2.77,4,11,0,ok,
+axes-full,1d5a0c76b54b28ff,separator&spk,True,4,48000,bf16-mixed,False,6,128,12,False,0,65.7,433.6,440.2,5.13,4,11,0,ok,
+axes-full,49cb0be1d742824c,model,False,4,48000,fp32,True,6,128,12,False,3,141.1,416.6,24295.8,9.59,35,40,22,ok,
+axes-full,669e03abeecb4ee3,separator&spk,True,4,48000,fp16-mixed,True,6,128,12,False,0,64.0,429.9,435.4,5.13,4,11,0,ok,
+axes-full,ebaeaa35b5f21da3,separator&spk,True,8,48000,bf16-mixed,False,6,128,12,False,0,65.2,456.1,467.8,9.87,4,11,0,ok,
+axes-full,71e325c7a21acf82,separator&spk,True,8,48000,fp16-mixed,True,6,128,12,False,0,63.9,509.6,521.3,9.88,4,11,0,ok,
+axes-full,cb0b9850387a91ce,separator&spk,True,16,48000,bf16-mixed,False,6,128,12,False,0,64.4,633.4,641.5,19.38,4,11,0,ok,
+axes-full,49aa59649deb9d61,separator&spk,True,16,48000,fp16-mixed,True,6,128,12,False,0,66.0,626.2,630.8,19.38,4,11,0,ok,
+axes-full,927a3e9f3803a423,model,False,1,48000,bf16-mixed,False,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7595a1ddcb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,ceed38d8de3042d4,model,False,1,48000,fp16-mixed,True,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7595a1ddcb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,bea84125ef686c32,model,False,4,48000,bf16-mixed,True,6,128,12,False,1,167.9,486.9,29733.0,5.15,35,40,22,ok,
+axes-full,17b9134e074a00c1,model,False,4,48000,fp16-mixed,False,6,128,12,False,3,159.2,451.1,27915.7,5.14,35,40,22,ok,
+axes-full,db29d1da79d51a40,model,False,2,48000,bf16-mixed,False,6,128,12,False,0,159.2,425.9,26462.4,2.88,35,40,22,ok,
+axes-full,dc0723c68faa7ee4,model,False,8,48000,fp32,False,6,128,12,False,1,165.6,733.7,30430.1,18.82,35,40,22,ok,
+axes-full,ceb0ce95d26146f6,model,False,8,48000,fp32,True,6,128,12,False,3,161.3,596.1,28909.8,18.82,35,40,22,ok,
+axes-full,5b76c0526c7de766,model,False,2,48000,fp16-mixed,True,6,128,12,False,0,166.1,467.7,28665.6,2.77,35,40,22,ok,
+axes-full,9e3c859a94f4e0df,model,False,8,48000,bf16-mixed,True,6,128,12,False,1,187.9,500.7,33417.4,9.93,35,40,22,ok,
+axes-full,ad7cc98e8f35a47f,model,False,8,48000,fp16-mixed,False,6,128,12,False,3,182.6,488.7,33026.7,9.93,35,40,22,ok,
+axes-full,f8a24ac7d0a353f0,model,False,16,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.69 GiB. GPU 0 has a total capacity of 23.56 GiB of which 2.56 GiB is free. Including non-PyTorch memory, this process has 20.99 GiB memory in use. Of the allocated memory 17.50 GiB is allocated by PyTorch, and 2.89 GiB is reserved by PyTorch "
+axes-full,0885e77efeb5ba69,model,False,16,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.69 GiB. GPU 0 has a total capacity of 23.56 GiB of which 2.55 GiB is free. Including non-PyTorch memory, this process has 21.00 GiB memory in use. Of the allocated memory 17.50 GiB is allocated by PyTorch, and 2.90 GiB is reserved by PyTorch "
+axes-full,a99d70ae5f061190,model,False,4,48000,bf16-mixed,False,6,128,12,False,0,181.0,509.8,31060.4,5.15,35,40,22,ok,
+axes-full,50eb13c0ba9d4e98,model,False,16,48000,bf16-mixed,True,6,128,12,False,1,196.4,630.6,36454.5,19.66,35,40,22,ok,
+axes-full,3baf63aed4210594,model,False,16,48000,fp16-mixed,False,6,128,12,False,3,195.3,624.0,35202.0,19.66,35,40,22,ok,
+axes-full,675b2452bef5e42f,model,True,1,48000,fp32,False,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7a2bb555db80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,b084591abb028da6,model,True,1,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x76b3cec5bb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,57e854cf0b20f0b1,model,False,4,48000,fp16-mixed,True,6,128,12,False,0,191.0,458.0,32972.5,5.16,35,40,22,ok,
+axes-full,985b92ea8e5da40e,model,True,1,48000,bf16-mixed,True,6,128,12,False,1,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7a2bb555db80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,98d5826ad3c38a90,model,True,1,48000,fp16-mixed,False,6,128,12,False,3,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x76b3cec5bb80>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,987b1a055992b4ad,model,True,2,48000,fp32,False,6,128,12,False,1,312.1,357.9,361.4,5.07,5,12,0,ok,
+axes-full,d61967626b98b58e,model,True,2,48000,fp32,True,6,128,12,False,3,326.0,345.4,346.6,5.08,5,12,0,ok,
+axes-full,5e3974f6df50473e,model,True,2,48000,bf16-mixed,True,6,128,12,False,1,539.0,401.9,412.5,2.76,5,12,0,ok,
+axes-full,d8e304de1c018ec4,model,True,2,48000,fp16-mixed,False,6,128,12,False,3,529.8,376.4,379.6,2.77,5,12,0,ok,
+axes-full,03c942b1e9fe2a9b,model,True,1,48000,bf16-mixed,False,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7d8e00fd9c10>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,78118a4b6661e3f5,model,True,2,48000,fp16-mixed,True,6,128,12,False,0,236.8,397.6,408.4,2.75,5,12,0,ok,
+axes-full,7aef48dd5f3149b0,model,True,2,48000,bf16-mixed,False,6,128,12,False,3,241.0,375.4,380.5,2.75,5,12,0,ok,
+axes-full,8b40d3aa65693582,model,True,4,48000,fp32,True,6,128,12,False,0,216.8,414.9,421.3,9.55,5,12,0,ok,
+axes-full,00cfd3e94d586961,model,True,4,48000,fp32,False,6,128,12,False,3,213.3,483.5,488.7,9.57,5,12,0,ok,
+axes-full,d6b5e92ac9ab2a20,model,True,4,48000,fp16-mixed,False,6,128,12,False,0,232.3,408.2,424.4,5.12,5,12,0,ok,
+axes-full,73bcf46406d477e1,model,True,4,48000,bf16-mixed,True,6,128,12,False,3,233.4,417.3,419.7,5.1,5,12,0,ok,
+axes-full,26172047b0a64bbd,model,True,8,48000,fp32,True,6,128,12,False,0,210.0,624.4,630.4,18.75,5,12,0,ok,
+axes-full,c5a74d09e2fc890b,model,True,8,48000,fp32,False,6,128,12,False,3,208.1,718.5,719.1,18.75,5,12,0,ok,
+axes-full,ce46f9d1ff4c7321,model,True,8,48000,bf16-mixed,True,6,128,12,False,3,217.7,400.6,408.1,9.88,5,12,0,ok,
+axes-full,2eb729eb9d9c9cc2,model,True,8,48000,fp16-mixed,False,6,128,12,False,0,228.6,427.1,445.2,9.88,5,12,0,ok,
+axes-full,106804878bc61666,model,True,16,48000,fp32,False,6,128,12,False,3,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 99.12 MiB is free. Including non-PyTorch memory, this process has 23.45 GiB memory in use. Of the allocated memory 20.39 GiB is allocated by PyTorch, and 2.70 GiB is reserved by PyTorch"
+axes-full,9410708c1003eee8,model,True,16,48000,fp32,True,6,128,12,False,0,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 105.12 MiB is free. Including non-PyTorch memory, this process has 23.45 GiB memory in use. Of the allocated memory 20.39 GiB is allocated by PyTorch, and 2.70 GiB is reserved by PyTorc"
+axes-full,34c0e822701646b9,model,False,8,48000,bf16-mixed,False,6,128,12,False,1,121.5,498.3,19232.7,9.86,35,40,22,ok,
+axes-full,72be5802aef3b633,model,True,16,48000,bf16-mixed,True,6,128,12,False,3,221.9,594.1,593.9,19.39,5,12,0,ok,
+axes-full,0d3fa411501c7597,model,True,16,48000,fp16-mixed,False,6,128,12,False,0,220.8,610.9,616.2,19.39,5,12,0,ok,
+axes-full,842415fc1a474e69,model,False,8,48000,fp16-mixed,True,6,128,12,False,1,116.5,596.2,17707.9,9.85,35,40,22,ok,
+axes-full,faed911ca8713c02,model,False,16,48000,fp16-mixed,True,6,128,12,False,0,118.6,630.4,17866.3,19.34,35,40,22,ok,
+axes-full,ca136ffb03d018bb,model,False,16,48000,bf16-mixed,False,6,128,12,False,3,115.5,611.6,17973.6,19.34,35,40,22,ok,
+axes-full,c6ef5f28ddcd3d1c,model,True,1,48000,fp16-mixed,True,6,128,12,False,0,nan,nan,nan,nan,0,0,0,ERROR,"TorchRuntimeError: Dynamo failed to run FX node with fake tensors: call_function <function batch_norm at 0x7357487dac10>(*(FakeTensor(..., device='cuda:0', size=(1, 3072)), FakeTensor(..., device='cuda:0', size=(3072,)), FakeTensor(..., device='cuda:0', size=(3072,)), Parameter(FakeTensor(..., devic"
+axes-full,16e2cb9cd5f00216,model,True,4,48000,bf16-mixed,False,6,128,12,False,1,233.7,428.4,433.2,5.11,5,12,0,ok,
+axes-full,50fd5cc566aff214,model,True,4,48000,fp16-mixed,True,6,128,12,False,3,228.2,380.8,384.6,5.12,5,12,0,ok,
+axes-full,b5d18ffb7dee3822,model,True,8,48000,bf16-mixed,False,6,128,12,False,0,221.0,397.7,409.9,9.85,5,12,0,ok,
+axes-full,31fe6c97d9260285,model,True,8,48000,fp16-mixed,True,6,128,12,False,1,220.3,373.2,374.6,9.85,5,12,0,ok,
+axes-full,451114ad2e27a933,model,True,16,48000,fp16-mixed,True,6,128,12,False,0,214.2,569.8,572.8,19.4,5,12,0,ok,
+axes-full,831a9992a6223f54,model,True,16,48000,bf16-mixed,False,6,128,12,False,3,215.7,592.6,592.8,19.39,5,12,0,ok,
+dynamic-none,28d29120eb05b1af,eager,-,16,48000,fp16-mixed,True,6,128,12,False,0,0.0,600.4,599.8,19.38,0,0,0,ok,
+dynamic-none,b41a1cf5dbc2aa90,model,,16,48000,fp16-mixed,True,6,128,12,False,0,107.9,549.1,548.9,19.34,5,12,0,ok,
+dynamic-none,451114ad2e27a933,model,True,16,48000,fp16-mixed,True,6,128,12,False,0,196.8,605.3,606.1,19.4,5,12,0,ok,
+dynamic-none-axes,b46ae62c142bb023,model,,16,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 169.12 MiB is free. Including non-PyTorch memory, this process has 23.38 GiB memory in use. Of the allocated memory 20.38 GiB is allocated by PyTorch, and 2.69 GiB is reserved by PyTorc"
+dynamic-none-axes,b3f1bd84457f2ea5,model,,2,48000,fp32,True,6,128,12,False,0,106.5,342.9,351.9,4.95,5,12,0,ok,
+dynamic-none-axes,0fd7743fc0053f1b,model,,4,48000,fp32,True,6,128,12,False,1,111.2,410.7,415.5,9.55,5,12,0,ok,
+dynamic-none-axes,10aa51bc609ae698,model,,8,48000,fp32,True,6,128,12,False,2,106.3,570.9,575.0,18.75,5,12,0,ok,
+dynamic-none-axes,88104a4470aea0da,model,,16,48000,bf16-mixed,True,6,128,12,False,3,120.0,571.7,574.6,19.34,5,12,0,ok,
+dynamic-none-axes,9fa6dfc2e5de09a9,model,,2,48000,bf16-mixed,True,6,128,12,False,0,119.3,360.8,371.5,2.75,5,12,0,ok,
+dynamic-none-axes,d6c15d427d6bc73a,model,,4,48000,bf16-mixed,True,6,128,12,False,1,120.4,374.6,382.8,5.11,5,12,0,ok,
+dynamic-none-axes,929b3931d93dbc47,model,,8,48000,bf16-mixed,True,6,128,12,False,2,119.5,386.5,397.1,9.85,5,12,0,ok,
+dynamic-none-axes,b41a1cf5dbc2aa90,model,,16,48000,fp16-mixed,True,6,128,12,False,3,118.0,560.2,565.2,19.34,5,12,0,ok,
+dynamic-none-axes,30938dc004ba768a,model,,2,48000,fp16-mixed,True,6,128,12,False,0,117.1,402.5,407.9,2.75,5,12,0,ok,
+dynamic-none-axes,09234279ad55ac45,model,,4,48000,fp16-mixed,True,6,128,12,False,1,120.7,353.4,355.6,5.11,5,12,0,ok,
+dynamic-none-axes,59768a7fc670aff7,model,,8,48000,fp16-mixed,True,6,128,12,False,2,120.3,374.7,376.7,9.85,5,12,0,ok,
+dynamic-none-scopes,e52a6389088537f0,separator,,2,48000,fp32,True,6,128,12,False,0,15.5,371.5,381.3,4.96,3,6,0,ok,
+dynamic-none-scopes,9aa814ea3db568b3,separator,,8,48000,fp32,True,6,128,12,False,1,16.3,612.8,609.6,18.8,3,6,0,ok,
+dynamic-none-scopes,da97588d37773b86,separator&spk,,2,48000,fp32,True,6,128,12,False,2,27.6,385.9,387.6,4.95,3,11,0,ok,
+dynamic-none-scopes,ef79fe66b7990fd0,separator&spk,,8,48000,fp32,True,6,128,12,False,3,28.8,578.6,581.9,18.75,3,11,0,ok,
+dynamic-none-scopes,3930c8ff6091d61d,separator,,2,48000,bf16-mixed,True,6,128,12,False,0,16.3,397.0,399.5,2.77,3,6,0,ok,
+dynamic-none-scopes,da435c7c7d89290c,separator,,8,48000,bf16-mixed,True,6,128,12,False,1,16.6,488.3,498.5,9.87,3,6,0,ok,
+dynamic-none-scopes,06328aa07a161639,separator,,2,48000,fp16-mixed,True,6,128,12,False,0,16.2,409.6,412.8,2.77,3,6,0,ok,
+dynamic-none-scopes,bce1f4447b39bbac,separator&spk,,2,48000,bf16-mixed,True,6,128,12,False,2,28.0,406.6,411.9,2.76,3,11,0,ok,
+dynamic-none-scopes,1a748172e40058f6,separator,,8,48000,fp16-mixed,True,6,128,12,False,1,16.6,416.1,418.1,9.87,3,6,0,ok,
+dynamic-none-scopes,2f0b61b131264e76,separator&spk,,8,48000,bf16-mixed,True,6,128,12,False,3,28.9,426.2,428.7,9.85,3,11,0,ok,
+dynamic-none-scopes,557e1e70494f22fe,separator,,16,48000,fp32,True,6,128,12,False,1,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 163.12 MiB is free. Including non-PyTorch memory, this process has 23.39 GiB memory in use. Of the allocated memory 20.40 GiB is allocated by PyTorch, and 2.68 GiB is reserved by PyTorc"
+dynamic-none-scopes,0ddbd46e04eae857,separator,,4,48000,fp32,True,6,128,12,False,0,16.2,431.1,436.0,9.57,3,6,0,ok,
+dynamic-none-scopes,b7dc05adbfe6a4bc,separator&spk,,2,48000,fp16-mixed,True,6,128,12,False,2,28.6,408.7,413.8,2.76,3,11,0,ok,
+dynamic-none-scopes,5e9a1d131466c865,separator,,4,48000,bf16-mixed,True,6,128,12,False,0,16.8,419.3,422.7,5.13,3,6,0,ok,
+dynamic-none-scopes,703b85acce5e5d53,separator&spk,,8,48000,fp16-mixed,True,6,128,12,False,3,29.4,486.2,490.1,9.85,3,11,0,ok,
+dynamic-none-scopes,d89dc483757c91ed,separator,,16,48000,bf16-mixed,True,6,128,12,False,1,16.8,597.6,598.8,19.38,3,6,0,ok,
+dynamic-none-scopes,cb35970617e95c12,separator&spk,,16,48000,fp32,True,6,128,12,False,3,nan,nan,nan,nan,0,0,0,OOM,"OutOfMemoryError: CUDA out of memory. Tried to allocate 2.82 GiB. GPU 0 has a total capacity of 23.56 GiB of which 157.12 MiB is free. Including non-PyTorch memory, this process has 23.40 GiB memory in use. Of the allocated memory 20.40 GiB is allocated by PyTorch, and 2.68 GiB is reserved by PyTorc"
+dynamic-none-scopes,48944389aea1027c,separator,,4,48000,fp16-mixed,True,6,128,12,False,0,16.7,414.8,419.6,5.13,3,6,0,ok,
+dynamic-none-scopes,10fea2656772aec7,separator&spk,,4,48000,fp32,True,6,128,12,False,2,28.6,409.7,414.5,9.55,3,11,0,ok,
+dynamic-none-scopes,5ec6158c5855a282,separator,,16,48000,fp16-mixed,True,6,128,12,False,1,17.2,592.3,592.0,19.38,3,6,0,ok,
+dynamic-none-scopes,3c157861d9387c52,separator&spk,,16,48000,bf16-mixed,True,6,128,12,False,3,28.9,589.2,592.5,19.33,3,11,0,ok,
+dynamic-none-scopes,690cd203d75f0123,separator&spk,,4,48000,bf16-mixed,True,6,128,12,False,2,27.9,436.3,438.8,5.12,3,11,0,ok,
+dynamic-none-scopes,9a7b726fd7eacd2d,separator&spk,,4,48000,fp16-mixed,True,6,128,12,False,2,27.5,393.3,393.9,5.12,3,11,0,ok,
+dynamic-none-scopes,bccea87b508cc31e,separator&spk,,16,48000,fp16-mixed,True,6,128,12,False,3,27.5,595.8,595.7,19.33,3,11,0,ok,
+dynamic-none,faed911ca8713c02,model,False,16,48000,fp16-mixed,True,6,128,12,False,3,107.5,600.2,16976.9,19.34,35,40,22,ok,
