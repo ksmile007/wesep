@@ -37,8 +37,27 @@ dnsmos_use_gpu=true
 
 # Model average related
 num_avg=10
+avg_mode=best              # best: 아래 avg_epochs 를 씀 / final: 마지막 num_avg 개를 씀
+avg_epochs="138,141"       # avg_mode=best 일 때만 쓰임
+
+# Debug 관련 — 짧게 돌려 "도는가 · GPU 메모리가 되는가" 만 볼 때.
+# 아래 dev/ 경로들은 Libri2Mix 의 검증 분할이라 뜻이 다름. 헷갈리지 말 것
+debug=false                    # true 면 아래 debug_config 를 본 config 위에 덮어씀
+debug_config=confs/debug.yaml  # 덮어쓸 키만 담긴 파일
+debug_test_shards=1            # debug 일 때 stage 5 평가에 쓸 shard tar 개수 (전체는 3개)
 
 . tools/parse_options.sh || exit 1
+
+# --debug true 면 본 config 에 debug 덮어쓰기를 얹은 임시 config 로 갈아타고, 실험 폴더도 분리함.
+# 폴더를 나누는 이유는 아래 stage 3 이 exp_dir 의 latest_checkpoint.pt 를 자동으로 이어받기 때문임 —
+# 같은 폴더를 쓰면 본 학습이 3 epoch 짜리 debug 가중치에서 시작해 버림.
+if ${debug}; then
+  exp_dir="${exp_dir}_debug"
+  mkdir -p "${exp_dir}"
+  config=$(python local/make_debug_config.py "${config}" "${debug_config}" "${exp_dir}/config_debug.yaml")
+  avg_mode=final    # 3 epoch 만 돌아 checkpoint_138·141 이 없으므로 마지막 num_avg 개를 평균
+  echo "Debug mode: config=${config}  exp_dir=${exp_dir}"
+fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   echo "Prepare datasets ..."
@@ -97,12 +116,13 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   echo "Do model average ..."
   avg_model=$exp_dir/models/avg_best_model.pt
+  avg_opts=(--mode "${avg_mode}")
+  [ "${avg_mode}" = best ] && avg_opts+=(--epochs "${avg_epochs}")
   python wesep/bin/average_model.py \
     --dst_model $avg_model \
     --src_path $exp_dir/models \
     --num ${num_avg} \
-    --mode best \
-    --epochs "138,141"
+    "${avg_opts[@]}"
 fi
 if [ -z "${checkpoint}" ] && [ -f "${exp_dir}/models/avg_best_model.pt" ]; then
   checkpoint="${exp_dir}/models/avg_best_model.pt"
@@ -112,12 +132,17 @@ fi
 # shellcheck disable=SC2215
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
   echo "Start inferencing ..."
+  test_data=${data}/test/${data_type}.list
+  if ${debug}; then    # 평가도 줄임 — shard tar 앞 몇 개만
+    head -n ${debug_test_shards} ${test_data} >${exp_dir}/test_debug.list
+    test_data=${exp_dir}/test_debug.list
+  fi
   python wesep/bin/infer.py --config $config \
     --fs ${fs} \
     --gpus 0 \
     --exp_dir ${exp_dir} \
     --data_type "${data_type}" \
-    --test_data ${data}/test/${data_type}.list \
+    --test_data ${test_data} \
     --test_spk1_enroll ${data}/test/spk1.enroll \
     --test_spk2_enroll ${data}/test/spk2.enroll \
     --test_spk2utt ${data}/test/single.wav.scp \
@@ -127,7 +152,17 @@ fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
   echo "Start scoring ..."
-  ./tools/score.sh --dset "${data}/test" \
+  score_dset=${data}/test
+  if ${debug}; then
+    # 추론을 shard 일부만 돌렸으므로 정답 목록도 같은 키만 남김.
+    # 안 그러면 score.py:120 의 assert inf_reader.keys() == ref_reader.keys() 에서 죽음
+    score_dset=${exp_dir}/test_debug_dset
+    mkdir -p ${score_dset}
+    awk 'NR==FNR{k[$1];next} ($1 in k)' ${exp_dir}/audio/spk1.scp \
+        ${data}/test/single.wav.scp >${score_dset}/single.wav.scp
+    echo "Debug mode: score_dset=${score_dset} ($(wc -l <${score_dset}/single.wav.scp) 발화)"
+  fi
+  ./tools/score.sh --dset "${score_dset}" \
     --exp_dir "${exp_dir}" \
     --fs ${fs} \
     --use_pesq "${use_pesq}" \
