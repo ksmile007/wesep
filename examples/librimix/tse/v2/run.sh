@@ -36,9 +36,12 @@ use_dnsmos=true
 dnsmos_use_gpu=true
 
 # Model average related
-num_avg=10
-avg_mode=best              # best: 아래 avg_epochs 를 씀 / final: 마지막 num_avg 개를 씀
-avg_epochs="138,141"       # avg_mode=best 일 때만 쓰임
+# 두 모드는 서로 다른 인자 하나씩만 씀 — 같이 적어도 겹치지 않음.
+#   best  : avg_epochs 를 씀.  num_avg 는 무시 (아래 stage 4 가 개수를 세어 덮어씀)
+#   final : num_avg 를 씀.     avg_epochs 는 무시
+avg_mode=best
+avg_epochs="138,141"       # best 일 때만. 여기 적은 epoch 만 평균함
+num_avg=10                 # final 일 때만. 마지막 몇 개를 평균할지
 
 # Debug 관련 — 짧게 돌려 "도는가 · GPU 메모리가 되는가" 만 볼 때.
 # 아래 dev/ 경로들은 Libri2Mix 의 검증 분할이라 뜻이 다름. 헷갈리지 말 것
@@ -117,7 +120,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   echo "Do model average ..."
   avg_model=$exp_dir/models/avg_best_model.pt
   avg_opts=(--mode "${avg_mode}")
-  [ "${avg_mode}" = best ] && avg_opts+=(--epochs "${avg_epochs}")
+  # <<<<< 고친 것 - best 모드면 평균할 개수를 avg_epochs 에서 세어 num_avg 를 덮어씀.
+  #       average_model.py 는 best 일 때 avg_epochs 로 목록을 정하고 num 은 개수 검사에만 씀 —
+  #       두 값이 어긋나면 assert 에서 죽으므로, 같은 정보를 두 번 적지 않게 함.
+  if [ "${avg_mode}" = best ]; then
+    avg_opts+=(--epochs "${avg_epochs}")
+    num_avg=$(awk -F',' '{print NF}' <<<"${avg_epochs}")
+  fi
   python wesep/bin/average_model.py \
     --dst_model $avg_model \
     --src_path $exp_dir/models \
