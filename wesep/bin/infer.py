@@ -4,8 +4,11 @@ import os
 import time
 
 import fire
+import pandas as pd    # <<<<< 더한 것 - 발화별 결과를 csv 로 남기려고
 import soundfile
 import torch
+import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 from torch.utils.data import DataLoader
 
 from wesep.dataset.dataset import Dataset, tse_collate_fn_2spk
@@ -24,12 +27,18 @@ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["TORCH_USE_CUDA_DSA"] = "1"
 
 
+# <<<<< 더한 것 - logger.info 가 tqdm 막대와 같은 줄에 겹쳐 찍히는 것을 막음.
+#       괄호가 있어야 함 — @contextmanager 객체를 만들어 데코레이터로 쓰는 것임
+@logging_redirect_tqdm()
 def infer(config="confs/conf.yaml", **kwargs):
     start = time.time()
     total_SISNR = 0
     total_SISNRi = 0
     total_cnt = 0
     accept_cnt = 0
+    # <<<<< 더한 것 - infer.log 의 Num= 줄은 {:.2f} 로 잘려 원값이 안 남으므로
+    #       같은 값을 원 정밀도로 모아 csv 로 저장함
+    utt_rows = []
 
     configs = parse_config_or_kwargs(config, **kwargs)
     sign_save_wav = configs.get(
@@ -106,7 +115,12 @@ def infer(config="confs/conf.yaml", **kwargs):
     logger.info("test number: {}".format(test_iter))
 
     with torch.no_grad():
-        for i, batch in enumerate(test_dataloader):
+        # <<<<< 고친 것 - 추론 진행 막대. test_iter 는 전체 기준이라
+        #       --debug true 로 shard 를 잘라 쓰면 끝까지 안 차고 중간에 멈춤
+        utts = tqdm.tqdm(test_dataloader, total=test_iter, desc="<infer>",
+                         leave=False, dynamic_ncols=True,
+                         disable=int(os.environ.get("RANK", 0)) != 0)
+        for i, batch in enumerate(utts):
             features = batch["wav_mix"]
             targets = batch["wav_targets"]
             enroll = batch["spk_embeds"]

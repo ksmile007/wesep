@@ -101,6 +101,19 @@ if ${use_dnsmos} && ${dnsmos_use_gpu}; then
 else
     cmd="./tools/run.pl"
 fi
+# <<<<< 더한 것 - run.pl 이 각 작업의 출력을 로그 파일로 돌려서 화면에 진행이 안 보임.
+#       로그에 쌓이는 "Scoring" 줄을 세어 현재/전체를 보여 줌 (score.py:124 가 발화마다 한 줄 남김)
+_total=$(wc -l <"${key_file}")
+(
+    while true; do
+        _done=$(cat "${_logdir}"/tse_scoring.*.log 2>/dev/null | grep -c Scoring)
+        printf "\r  Scoring  %s / %s" "${_done}" "${_total}"
+        sleep 1
+    done
+) &
+_progress_pid=$!
+trap 'kill ${_progress_pid} 2>/dev/null' EXIT
+
 # shellcheck disable=SC2086
 ${cmd} JOB=1:"${_nj}" "${_logdir}"/tse_scoring.JOB.log \
     python -m wesep.bin.score \
@@ -127,6 +140,10 @@ fi
 if "${use_dnsmos}"; then
     scoring_protocol+=" BAK SIG OVRL P808_MOS"
 fi
+
+kill ${_progress_pid} 2>/dev/null
+trap - EXIT
+printf "\r  Scoring  %s / %s\n" "${_total}" "${_total}"
 
 # Merge and sort result files
 for protocol in ${scoring_protocol} wav; do

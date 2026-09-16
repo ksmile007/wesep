@@ -1,8 +1,10 @@
 import io
 import json
 import logging
+import os
 import random
 import tarfile
+import time
 from subprocess import PIPE, Popen
 from urllib.parse import urlparse
 
@@ -12,6 +14,7 @@ import soundfile as sf
 import torch
 import torchaudio
 import torchaudio.compliance.kaldi as kaldi
+import tqdm
 from scipy import signal
 
 from wesep.dataset.FRAM_RIR import single_channel as RIR_sim
@@ -332,7 +335,7 @@ def snr_mixer(data, use_random_snr: bool = False):
         yield sample
 
 
-def shuffle(data, shuffle_size=2500):
+def shuffle(data, shuffle_size=2500, slow_sec=0):
     """Local shuffle the data
 
     Args:
@@ -342,10 +345,30 @@ def shuffle(data, shuffle_size=2500):
     Returns:
         Iterable[{key, wavs, spks}]
     """
+    # <<<<< 더한 것 - 버퍼가 다 찰 때까지 아무것도 안 나와 멈춘 듯 보임(2500 이면 84초, 실측).
+    #       그 구간만 막대로 보여 주고, 첫 통이 차면 닫아서 비킴 —
+    #       학습이 시작되면 executor.py 의 스텝 막대가 같은 줄을 쓰므로 겹치면 안 됨.
+    #       두 막대는 프로세스가 달라서 position 으로는 못 나눔.
+    #       줄이 겹치지 않게 0번 GPU(RANK)의 0번 워커만 그림.
+    #       RANK 는 torchrun 이 넣어 주고 워커 프로세스가 그대로 물려받음
+    info = torch.utils.data.get_worker_info()
+    is_rank0_worker0 = int(os.environ.get("RANK", 0)) == 0 and (info is None or info.id == 0)
+    # 끝값은 config 의 shuffle_size 그대로. 워커가 각자 그만큼 채우므로 시스템 전체로는
+    # 그 num_workers 배를 읽지만(실측), 여기서 세는 것은 0번 워커 자기 몫이라 1:1 로 둠
+    bar = tqdm.tqdm(total=shuffle_size, desc="<shuffle> Data ready", leave=False,
+                    dynamic_ncols=True, smoothing=0.1, disable=not is_rank0_worker0)
+
     buf = []
     for sample in data:
+        if slow_sec and is_rank0_worker0:       # 막대가 도는지 눈으로 보려고 일부러 늦추는 스위치.
+            time.sleep(slow_sec)     # 막대를 그리는 워커만 쉬게 함. 실제 학습에서는 반드시 0
         buf.append(sample)
+        if bar is not None:
+            bar.update(1)
         if len(buf) >= shuffle_size:
+            if bar is not None:      # 첫 통까지만 보여 주고 물러남
+                bar.close()
+                bar = None
             random.shuffle(buf)
             for x in buf:
                 yield x

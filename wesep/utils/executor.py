@@ -13,9 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from contextlib import nullcontext
 
 import tableprint as tp
+import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 # if your python version < 3.7 use the below one
 import torch
@@ -29,6 +32,10 @@ class Executor:
     def __init__(self):
         self.step = 0
 
+    # <<<<< 더한 것 - logger.info 가 tqdm 막대와 같은 줄에 겹쳐 찍히는 것을 막음.
+    #       이 함수 안의 로깅을 tqdm.write 로 흘려보내 막대를 지웠다 다시 그리게 함.
+    #       괄호가 있어야 함 — @contextmanager 객체를 만들어 데코레이터로 쓰는 것임
+    @logging_redirect_tqdm()
     def train(
             self,
             dataloader,
@@ -67,7 +74,12 @@ class Executor:
             model_context = nullcontext
 
         with model_context():
-            for i, batch in enumerate(dataloader):
+            # <<<<< 고친 것 - 스텝 진행 막대. 0번 GPU 에서만 그림.
+            #       표(tableprint) 는 log_batch_interval 마다만 찍히므로 그 사이를 막대가 메움
+            steps = tqdm.tqdm(dataloader, total=epoch_iter, desc=f"<Executor> TRAIN {epoch}",
+                              leave=False, dynamic_ncols=True,
+                              disable=int(os.environ.get("RANK", 0)) != 0)
+            for i, batch in enumerate(steps):
                 features = batch["wav_mix"]
                 targets = batch["wav_targets"]
                 # embeddings when not joint training, enrollment wavforms
@@ -151,6 +163,7 @@ class Executor:
             total_loss_avg = sum(losses) / len(losses)
             return total_loss_avg, 0
 
+    @logging_redirect_tqdm()
     def cv(
             self,
             dataloader,
@@ -171,7 +184,11 @@ class Executor:
         losses = []
 
         with torch.no_grad():
-            for i, batch in enumerate(dataloader):
+            # <<<<< 고친 것 - 검증도 같은 방식으로 막대를 둠
+            steps = tqdm.tqdm(dataloader, total=val_iter, desc=f"<Executor> VAL   {epoch}",
+                              leave=False, dynamic_ncols=True,
+                              disable=int(os.environ.get("RANK", 0)) != 0)
+            for i, batch in enumerate(steps):
                 features = batch["wav_mix"]
                 targets = batch["wav_targets"]
                 enroll = batch["spk_embeds"]
