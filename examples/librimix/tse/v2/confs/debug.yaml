@@ -4,6 +4,9 @@
 
 num_epochs: 3            # 에포크 3번. train.py:303 의 루프 상한
 
+compile_model: false     # 짧게 도는 모드라 컴파일 113초가 순수 낭비임.
+                         # 본 학습에서는 본 config 의 true 가 그대로 쓰임
+
 steps_per_epoch: 5       # 에포크당 스텝 5번.
                          # train.py 는 스텝 수를 직접 안 받고
                          #   epoch_iter = sample_num_per_epoch // world_size // batch_size (train.py:201)

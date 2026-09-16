@@ -313,6 +313,34 @@ def train(config="conf/config.yaml", **kwargs):
             logger.info(line)
     dist.barrier(device_ids=[gpu])  # synchronize here
 
+    # <<<<< 더한 것 - 학습 곡선을 텐서보드(+wandb)에 기록함.
+    #       tracker 키가 없으면 꺼지므로 기존 동작 그대로임.
+    #       none: 안 함 / tensorboard: 로컬 tfevents / both: 로컬 + wandb
+    #       wandb.init 은 SummaryWriter 보다 먼저 불러야 함 -
+    #       wandb 가 SummaryWriter 를 가로채는(patch) 방식이라 순서가 뒤집히면
+    #       텐서보드에만 남고 wandb 는 빈 run 이 됨
+    writer = None
+    if rank == 0 and configs.get("tracker", "none") != "none":
+        try:
+            if configs["tracker"] == "both":
+                import wandb
+                wandb.init(
+                    project=configs.get("wandb_project", "wesep-tse"),
+                    name=configs.get(
+                        "wandb_run_name",
+                        os.path.basename(configs["exp_dir"].rstrip("/"))),
+                    entity=configs.get("wandb_entity", None),
+                    config=configs,
+                    dir=configs["exp_dir"],
+                    sync_tensorboard=True,
+                )
+            from torch.utils.tensorboard import SummaryWriter
+            tb_dir = os.path.join(configs["exp_dir"], "tb")
+            writer = SummaryWriter(tb_dir)
+            logger.info("tracker: {} -> {}".format(configs["tracker"], tb_dir))
+        except ImportError as e:
+            logger.warning("tracker 를 끔 - {}".format(e))
+
     executor = Executor()
     executor.step = 0
 
@@ -363,6 +391,13 @@ def train(config="conf/config.yaml", **kwargs):
                 epoch, val_loss))
             train_losses.append(train_loss)
             val_losses.append(val_loss)
+
+            # <<<<< 더한 것 - SISDR 이라 음수이고 작을수록 좋음
+            if writer is not None:
+                writer.add_scalar("train/loss", train_loss, epoch)
+                writer.add_scalar("val/loss", val_loss, epoch)
+                writer.add_scalar("train/lr",
+                                  optimizer.param_groups[0]["lr"], epoch)
 
             best_loss = val_loss
             scheduler.best = best_loss
@@ -423,6 +458,12 @@ def train(config="conf/config.yaml", **kwargs):
             os.path.join(model_dir, "final_checkpoint.pt"),
         )
         logger.info(tp.bottom(len(header), width=10, style="grid"))
+
+    # <<<<< 더한 것 - wandb 는 finish() 를 안 부르면 run 이 running 으로 남음
+    if writer is not None:
+        writer.close()
+        if configs["tracker"] == "both":
+            wandb.finish()
 
 
 if __name__ == "__main__":

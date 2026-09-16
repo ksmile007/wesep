@@ -43,6 +43,14 @@ avg_mode=best
 avg_epochs="138,141"       # best 일 때만. 여기 적은 epoch 만 평균함
 num_avg=10                 # final 일 때만. 마지막 몇 개를 평균할지
 
+# 학습 곡선 기록 — exp_dir/tb 에 tfevents 를 씀
+#   none        : 안 함 (원본 동작)
+#   tensorboard : 로컬 파일만
+#   both        : 로컬 파일 + wandb 실시간 업로드
+# both 는 wandb 가 SummaryWriter 를 가로채는 방식이라 tfevents 도 그대로 남음.
+# wandb 로그인은 ~/.netrc 에 저장되므로 conda 환경과 무관함
+tracker=both
+
 # Debug 관련 — 짧게 돌려 "도는가 · GPU 메모리가 되는가" 만 볼 때.
 # 아래 dev/ 경로들은 Libri2Mix 의 검증 분할이라 뜻이 다름. 헷갈리지 말 것
 debug=false                    # true 면 아래 debug_config 를 본 config 위에 덮어씀
@@ -105,6 +113,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --exp_dir ${exp_dir} \
     --gpus $gpus \
     --num_avg ${num_avg} \
+    --tracker ${tracker} \
     --data_type "${data_type}" \
     --train_data ${data}/train-100/${data_type}.list \
     --train_utt2spk ${data}/train-100/single.utt2spk \
