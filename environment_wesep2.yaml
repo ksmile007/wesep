@@ -240,6 +240,5 @@ dependencies:
       - wcwidth==0.8.3
       - webencodings==0.5.1
       - websocket-client==1.9.0
-      - wespeaker==0.0.1
       - zipp==3.19.2
 prefix: /root/miniconda3/envs/wesep2
