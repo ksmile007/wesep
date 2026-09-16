@@ -73,56 +73,62 @@ def tar_file_and_group(data):
     for sample in data:
         assert "stream" in sample
         stream = tarfile.open(fileobj=sample["stream"], mode="r:*")
-        # TODO: The mode need to be validated
-        # In order to be compatible with the torch 2.x version,
-        # the file reading method here does not use streaming.
-        prev_prefix = None
-        example = {}
-        num_speakers = 0
-        valid = True
-        for tarinfo in stream:
-            name = tarinfo.name
-            pos = name.rfind(".")
-            assert pos > 0
-            prefix, postfix = name[:pos], name[pos + 1:]
-            if prev_prefix is not None and prev_prefix not in prefix:
-                example["key"] = prev_prefix
-                if valid:
-                    example["num_speaker"] = num_speakers
-                    num_speakers = 0
-                    yield example
-                example = {}
-                valid = True
-            with stream.extractfile(tarinfo) as file_obj:
-                try:
-                    if "spk" in postfix:
-                        example[postfix] = (
-                            file_obj.read().decode("utf8").strip())
-                        num_speakers += 1
-                    elif postfix in AUDIO_FORMAT_SETS:
-                        waveform, sample_rate = torchaudio.load(file_obj)
-                        if prefix[-5:-1] == "_spk":
-                            example["wav" + prefix[-5:]] = waveform
-                            prefix = prefix[:-5]
-                        else:
-                            example["wav_mix"] = waveform
-                            example["sample_rate"] = sample_rate
-                    else:
-                        example[postfix] = file_obj.read()
-                except Exception as ex:
-                    valid = False
-                    logging.warning("error to parse {}".format(name))
-            prev_prefix = prefix
-
-        if prev_prefix is not None:
-            example["key"] = prev_prefix
-            example["num_speaker"] = num_speakers
+        # <<<<< 고친 것 - 아래 본문을 try 로 감싸고 정리 줄을 finally 로 옮김.
+        #       repeat_dataset 이 무한 스트림이라 executor 가 epoch_iter 에서 break 하고,
+        #       그러면 제너레이터가 yield 에 멈춘 채 버려져 아래 close() 에 도달하지 못했음.
+        #       finally 는 GeneratorExit 로 빠져나갈 때도 실행되므로 ResourceWarning 이 사라짐
+        try:
+            # TODO: The mode need to be validated
+            # In order to be compatible with the torch 2.x version,
+            # the file reading method here does not use streaming.
+            prev_prefix = None
+            example = {}
             num_speakers = 0
-            yield example
-        stream.close()
-        if "process" in sample:
-            sample["process"].communicate()
-        sample["stream"].close()
+            valid = True
+            for tarinfo in stream:
+                name = tarinfo.name
+                pos = name.rfind(".")
+                assert pos > 0
+                prefix, postfix = name[:pos], name[pos + 1:]
+                if prev_prefix is not None and prev_prefix not in prefix:
+                    example["key"] = prev_prefix
+                    if valid:
+                        example["num_speaker"] = num_speakers
+                        num_speakers = 0
+                        yield example
+                    example = {}
+                    valid = True
+                with stream.extractfile(tarinfo) as file_obj:
+                    try:
+                        if "spk" in postfix:
+                            example[postfix] = (
+                                file_obj.read().decode("utf8").strip())
+                            num_speakers += 1
+                        elif postfix in AUDIO_FORMAT_SETS:
+                            waveform, sample_rate = torchaudio.load(file_obj)
+                            if prefix[-5:-1] == "_spk":
+                                example["wav" + prefix[-5:]] = waveform
+                                prefix = prefix[:-5]
+                            else:
+                                example["wav_mix"] = waveform
+                                example["sample_rate"] = sample_rate
+                        else:
+                            example[postfix] = file_obj.read()
+                    except Exception as ex:
+                        valid = False
+                        logging.warning("error to parse {}".format(name))
+                prev_prefix = prefix
+
+            if prev_prefix is not None:
+                example["key"] = prev_prefix
+                example["num_speaker"] = num_speakers
+                num_speakers = 0
+                yield example
+        finally:
+            stream.close()
+            if "process" in sample:
+                sample["process"].communicate()
+            sample["stream"].close()
 
 
 def tar_file_and_group_single_spk(data):
@@ -139,42 +145,48 @@ def tar_file_and_group_single_spk(data):
         assert "stream" in sample
         stream = tarfile.open(fileobj=sample["stream"],
                               mode="r|*")  # Only support pytorch version <2.0
-        prev_prefix = None
-        example = {}
-        valid = True
-        for tarinfo in stream:
-            name = tarinfo.name
-            pos = name.rfind(".")
-            assert pos > 0
-            prefix, postfix = name[:pos], name[pos + 1:]
-            if prev_prefix is not None and prefix != prev_prefix:
+        # <<<<< 고친 것 - 아래 본문을 try 로 감싸고 정리 줄을 finally 로 옮김.
+        #       repeat_dataset 이 무한 스트림이라 executor 가 epoch_iter 에서 break 하고,
+        #       그러면 제너레이터가 yield 에 멈춘 채 버려져 아래 close() 에 도달하지 못했음.
+        #       finally 는 GeneratorExit 로 빠져나갈 때도 실행되므로 ResourceWarning 이 사라짐
+        try:
+            prev_prefix = None
+            example = {}
+            valid = True
+            for tarinfo in stream:
+                name = tarinfo.name
+                pos = name.rfind(".")
+                assert pos > 0
+                prefix, postfix = name[:pos], name[pos + 1:]
+                if prev_prefix is not None and prefix != prev_prefix:
+                    example["key"] = prev_prefix
+                    if valid:
+                        yield example
+                    example = {}
+                    valid = True
+                with stream.extractfile(tarinfo) as file_obj:
+                    try:
+                        if postfix in ["spk"]:
+                            example[postfix] = (
+                                file_obj.read().decode("utf8").strip())
+                        elif postfix in AUDIO_FORMAT_SETS:
+                            waveform, sample_rate = torchaudio.load(file_obj)
+                            example["wav"] = waveform
+                            example["sample_rate"] = sample_rate
+                        else:
+                            example[postfix] = file_obj.read()
+                    except Exception as ex:
+                        valid = False
+                        logging.warning("error to parse {}".format(name))
+                prev_prefix = prefix
+            if prev_prefix is not None:
                 example["key"] = prev_prefix
-                if valid:
-                    yield example
-                example = {}
-                valid = True
-            with stream.extractfile(tarinfo) as file_obj:
-                try:
-                    if postfix in ["spk"]:
-                        example[postfix] = (
-                            file_obj.read().decode("utf8").strip())
-                    elif postfix in AUDIO_FORMAT_SETS:
-                        waveform, sample_rate = torchaudio.load(file_obj)
-                        example["wav"] = waveform
-                        example["sample_rate"] = sample_rate
-                    else:
-                        example[postfix] = file_obj.read()
-                except Exception as ex:
-                    valid = False
-                    logging.warning("error to parse {}".format(name))
-            prev_prefix = prefix
-        if prev_prefix is not None:
-            example["key"] = prev_prefix
-            yield example
-        stream.close()
-        if "process" in sample:
-            sample["process"].communicate()
-        sample["stream"].close()
+                yield example
+        finally:
+            stream.close()
+            if "process" in sample:
+                sample["process"].communicate()
+            sample["stream"].close()
 
 
 def parse_raw_single_spk(data):
