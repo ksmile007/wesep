@@ -141,6 +141,27 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
 | `CUDA_VISIBLE_DEVICES=0` | **물리 GPU 번호.** 이 프로세스는 그 한 장만 보게 됨 |
 | `--config` | fusion 을 정하는 파일 |
 | `--exp_dir` | 체크포인트와 로그가 쌓이는 곳. **fusion 마다 달라야 함** |
+| `--debug true` | **짧게 시험할 때만.** 3 epoch × 5 스텝만 돌고 결과 폴더가 `_debug` 로 갈림.<br>상세는 [짧게 시험해 보기](#짧게-시험해-보기--debug-모드) 절 |
+| `--tracker` | 학습 곡선 기록. `none` · `tensorboard` · `both`.<br>기본값은 [run.sh:52](run.sh#L52) 의 `both` |
+| `--tracker_step_interval` | 몇 스텝마다 기록할지. 기본 50, `0` 이면 에포크만.<br>[run.sh:60](run.sh#L60) |
+
+**본 학습 전에 `--debug true` 로 한 번 돌려 볼 것.**
+40시간짜리를 띄워 놓고 3시간 뒤에 GPU 메모리 부족으로 죽은 것을 발견하는 일을 막아 줍니다.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
+  --config confs/bsrnn_ecapa_FiLM.yaml \
+  --exp_dir exp/bsrnn_ecapa_FiLM \
+  --debug true
+```
+
+`--debug true` 는 [confs/debug.yaml](confs/debug.yaml) 을 본 config 위에 덮어씁니다
+(`num_epochs: 3` · `steps_per_epoch: 5` · `compile_model: false` 등).
+**본 config 파일 자체는 바뀌지 않습니다** — [run.sh:76](run.sh#L76) 이 합친 임시 파일을
+`exp_dir/config_debug.yaml` 로 따로 만들어 그것을 씁니다.
+
+> SD-FiLM 저장소의 `--config-name=dev` 와 **이름이 다릅니다.**
+> 그쪽은 Hydra 이고 여기는 bash 인자입니다. wesep 에서는 `--debug true` 뿐입니다.
 
 `--data` 는 주지 않습니다 — [run.sh:74](run.sh#L74) 이 기본값 `data` 에
 `noise_type`(`clean`)을 붙여 `data/clean` 을 만듭니다.
@@ -315,6 +336,9 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 6 \
 exp/bsrnn_ecapa_FiLM/
 ├── train.log                      학습 로그 — "Val info val_loss" 로 수렴 확인
 ├── config.yaml                    이 run 이 실제로 쓴 설정 (자동 저장)
+├── csv/version_N/metrics.csv      학습 곡선 — 아래 표 참조
+├── tb/version_N/                  텐서보드 tfevents (--tracker tensorboard·both)
+├── wandb/                         wandb 로컬 폴더 (--tracker both)
 ├── models/
 │   ├── checkpoint_<N>.pt          epoch 별 체크포인트 (마지막 20개 보존)
 │   ├── latest_checkpoint.pt  ->   가장 최근 것 (재개할 때 자동으로 읽음)
@@ -325,6 +349,25 @@ exp/bsrnn_ecapa_FiLM/
 
 **Table 2 에 쓸 숫자는 `infer_utt_scores.csv` 에 있습니다** — stage 6 의 `scoring/` 에는
 SI-SNRi 가 없어서, 이 파일이 유일한 출처입니다.
+
+### 학습 곡선 — `csv/version_N/metrics.csv`
+
+Lightning `CSVLogger` 형식입니다. 그 시점에 없는 지표는 빈 칸으로 둡니다.
+
+| 열 | 뜻 |
+|---|---|
+| `step` | **전역 스텝.** 에포크가 바뀌어도 안 돌아갑니다 |
+| `epoch` | 에포크 번호 |
+| `train/loss_step` · `train/lr_step` | `--tracker_step_interval` 스텝마다 |
+| `train/loss_running_step` | 그 에포크 안의 누적 평균 |
+| `train/loss_epoch` · `train/lr_epoch` | 에포크 끝 (학습) |
+| `val/loss` | 에포크 끝 (검증) |
+
+**`version_N` 은 run 마다 하나씩 늘어납니다** — 중간에 끊겨 재개하면 `version_1` 이 새로
+생기고 이전 기록은 `version_0` 에 남습니다.
+
+> **소수점 끝자리까지 대조할 일에는 이 CSV 를 쓰십시오.**
+> 텐서보드의 스칼라는 float32 라 `50.018273162841794` 가 `50.018272399902344` 로 깎입니다.
 
 ---
 
