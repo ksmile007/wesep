@@ -101,8 +101,12 @@ dependencies:
       - --extra-index-url https://download.pytorch.org/whl/cu128
       - absl-py==2.3.1
       - accelerate==1.10.1
+      - aiohappyeyeballs==2.6.1
+      - aiohttp==3.13.5
+      - aiosignal==1.4.0
       - annotated-types==0.7.0
       - antlr4-python3-runtime==4.9.3
+      - async-timeout==5.0.1
       - attrs==26.1.0
       - audioread==3.1.0
       - auraloss==0.4.0
@@ -130,6 +134,7 @@ dependencies:
       - flake8-pyi==20.5.0
       - flatbuffers==25.12.19
       - fonttools==4.60.2
+      - frozenlist==1.8.0
       - fsspec==2025.10.0
       - future==1.0.0
       - gitdb==4.0.12
@@ -154,6 +159,7 @@ dependencies:
       - kiwisolver==1.4.7
       - lazy-loader==0.5
       - librosa==0.10.1
+      - lightning==2.6.0
       - lightning-utilities==0.15.2
       - llvmlite==0.43.0
       - lmdb==1.3.0
@@ -166,6 +172,7 @@ dependencies:
       - more-itertools==10.8.0
       - mpmath==1.3.0
       - msgpack==1.1.2
+      - multidict==6.7.1
       - nbclient==0.10.2
       - nbconvert==7.17.1
       - nbformat==5.10.4
@@ -197,6 +204,7 @@ dependencies:
       - platformdirs==4.4.0
       - pooch==1.9.0
       - pre-commit==3.5.0
+      - propcache==0.4.1
       - protobuf==6.33.6
       - psutil==7.2.2
       - pycodestyle==2.6.0
@@ -209,6 +217,7 @@ dependencies:
       - pystoi==0.3.3
       - python-discovery==1.6.0
       - python-dotenv==1.2.1
+      - pytorch-lightning==2.6.0
       - pytz==2026.3.post1
       - pyyaml==6.0
       - referencing==0.36.2
@@ -255,5 +264,6 @@ dependencies:
       - webencodings==0.5.1
       - websocket-client==1.9.0
       - werkzeug==3.1.8
+      - yarl==1.22.0
       - zipp==3.19.2
 prefix: /root/miniconda3/envs/wesep2

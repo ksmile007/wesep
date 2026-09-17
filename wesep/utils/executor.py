@@ -24,19 +24,27 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 import torch
 
 from wesep.utils.funcs import clip_gradients, compute_fbank, apply_cmvn
-# <<<<< 더한 것 - 스텝 단위 CSV·텐서보드 기록
-from wesep.utils.metric_logger import log_step
+# <<<<< 더한 것 - CSV·텐서보드·wandb 기록을 맡는 클래스
+from wesep.utils.tracker import Tracker
 import random
 
 
 class Executor:
 
-    # <<<<< 고친 것 - mlog 를 생성자로 받음.
-    #       metric_logger.make_logger() 가 만든 dict 또는 None.
-    #       안 넘기면 None 이라 스텝 기록만 안 할 뿐 기존 동작 그대로임
-    def __init__(self, mlog=None):
+    # <<<<< 고친 것 - 기록은 Tracker 가 다 함.
+    #       configs 를 안 넘기면 Tracker 가 스스로 꺼져 아무것도 기록하지 않음 -
+    #       wesep 원본 동작 그대로임
+    def __init__(self, configs=None, logger=None):
         self.step = 0
-        self.mlog = mlog
+        self.tracker = Tracker(configs, logger)
+        # <<<<< 더한 것 - cv() 는 전역 스텝을 모르는데 그래프의 x축으로 필요함.
+        #       train() 이 여기에 두고 가므로 **train() 을 먼저 불러야 함** -
+        #       안 부르면 None 이라 log_epoch 이 바로 KeyError 로 멈춤
+        self._global_step = None
+
+    # <<<<< 더한 것 - tfevents 를 닫고 wandb run 을 마감함
+    def close(self):
+        self.tracker.close()
 
     # <<<<< 더한 것 - logger.info 가 tqdm 막대와 같은 줄에 겹쳐 찍히는 것을 막음.
     #       이 함수 안의 로깅을 tqdm.write 로 흘려보내 막대를 지웠다 다시 그리게 함.
@@ -149,15 +157,14 @@ class Executor:
                 #       아래 dict 의 key 가 metrics_step.csv 의 열 이름이 됨 —
                 #       지표를 늘리려면 여기에 key 를 하나 더 넣으면 됨.
                 #       cur_iter 는 위에서 이미 계산해 둔 전역 스텝 번호임.
-                #       간격 판정과 mlog=None 처리는 log_step 안에서 하므로
+                #       간격 판정과 rank 판정은 Tracker 가 하므로
                 #       여기서는 매 스텝 그냥 부르면 됨
-                log_step(self.mlog, {
+                self.tracker.log_step({
                     "epoch": epoch,
-                    "step": i + 1,
                     "global_step": cur_iter,
-                    "loss": losses[-1],
-                    "running_mean": total_loss_avg,
-                    "lr": optimizer.param_groups[0]["lr"],
+                    "train/loss_step": losses[-1],
+                    "train/loss_running_step": total_loss_avg,
+                    "train/lr_step": optimizer.param_groups[0]["lr"],
                 })
 
                 # updata the model
@@ -185,6 +192,16 @@ class Executor:
                 if (i + 1) == epoch_iter:
                     break
             total_loss_avg = sum(losses) / len(losses)
+
+            # <<<<< 더한 것 - 학습 에포크 지표를 값이 생긴 자리에서 기록함.
+            #       cur_iter 는 cv() 도 x축으로 써야 하므로 self 에 남겨 둠
+            self._global_step = cur_iter
+            self.tracker.log_epoch({
+                "epoch": epoch,
+                "global_step": cur_iter,
+                "train/loss_epoch": total_loss_avg,
+                "train/lr_epoch": optimizer.param_groups[0]["lr"],
+            })
             return total_loss_avg, 0
 
     @logging_redirect_tqdm()
@@ -244,4 +261,13 @@ class Executor:
                         ))
                 if (i + 1) == val_iter:
                     break
+
+        # <<<<< 더한 것 - 검증 에포크 지표. 학습 쪽은 train() 이 따로 기록함.
+        #       x축은 train() 이 남긴 전역 스텝을 씀 - cv() 는 그 값을 모름.
+        #       rank 0 이 아니면 Tracker 가 꺼져 있어 바로 빠짐
+        self.tracker.log_epoch({
+            "epoch": epoch,
+            "global_step": self._global_step,
+            "val/loss": total_loss_avg,
+        })
         return total_loss_avg, 0
