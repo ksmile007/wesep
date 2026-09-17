@@ -48,7 +48,11 @@ def main(cfg_path, tracker, exp_dir, rep="1"):
     configs = yaml.safe_load(open(cfg_path))
     set_seed(configs["seed"])          # train.py:88 과 같은 자리
 
-    # tracker 블록 — train.py:316 과 같은 순서
+    # tracker 블록 — train.py 와 **순서가 다름.** 일부러 그렇게 둔 것임
+    #   train.py : set_seed(88) -> 모델 생성(219) -> DDP(243) -> tracker(322-342)
+    #   이 probe : set_seed     -> tracker        -> 모델 생성
+    # tracker 를 앞에 두면 tracker 가 전역 RNG 를 소비할 때 초기 가중치가 달라져
+    # weight_sha 가 바로 갈림 — train.py 순서보다 **더 엄격한** 검사임
     writer = None
     if tracker != "none":
         if tracker == "both":
