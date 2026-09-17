@@ -70,7 +70,10 @@ class Executor:
             SSA_enroll_prob=0,
             fbank_args=None,
             sample_rate=16000,
-            speaker_feat=True
+            speaker_feat=True,
+            # <<<<< 더한 것 - autocast 의 dtype. None 이면 torch 기본값(fp16).
+            #       precision='bf16-mixed' 면 bfloat16 이 들어옴
+            amp_dtype=None,
     ):
         """Train one epoch"""
         model = models[0]
@@ -114,7 +117,7 @@ class Executor:
                 # <<<<< 고친 것 - torch.cuda.amp.* 가 FutureWarning 을 냄. torch.amp.* 로 옮김.
                 #       두 API 는 같은 구현임 (torch.cuda.amp 쪽이 torch.amp 를 상속해 super() 를 부름).
                 #       device_type 은 위에서 이미 정해 둔 device 를 그대로 씀 - cpu 로 돌려도 깨지지 않게
-                with torch.amp.autocast(device.type, enabled=enable_amp):
+                with torch.amp.autocast(device.type, enabled=enable_amp, dtype=amp_dtype):
                     if SSA_enroll_prob > 0:
                         if SSA_enroll_prob > random.random():
                             with torch.no_grad():
@@ -216,6 +219,8 @@ class Executor:
             logger,
             log_batch_interval=100,
             device=torch.device("cuda"),
+            # <<<<< 더한 것 - train() 과 같음
+            amp_dtype=None,
     ):
         """Cross validation on"""
         model = models[0]
@@ -241,7 +246,7 @@ class Executor:
                 # <<<<< 고친 것 - torch.cuda.amp.* 가 FutureWarning 을 냄. torch.amp.* 로 옮김.
                 #       두 API 는 같은 구현임 (torch.cuda.amp 쪽이 torch.amp 를 상속해 super() 를 부름).
                 #       device_type 은 위에서 이미 정해 둔 device 를 그대로 씀 - cpu 로 돌려도 깨지지 않게
-                with torch.amp.autocast(device.type, enabled=enable_amp):
+                with torch.amp.autocast(device.type, enabled=enable_amp, dtype=amp_dtype):
                     outputs = model(features, enroll)
                     if not isinstance(outputs, (list, tuple)):
                         outputs = [outputs]

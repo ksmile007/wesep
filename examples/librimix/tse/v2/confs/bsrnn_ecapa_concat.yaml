@@ -29,6 +29,7 @@ dataset_args:
   SSA_enroll_prob: 0   # prob to add SSA on enrollment speech
 
 enable_amp: true  # false
+precision: 16-mixed  # <<<<< 더한 것 - 이 키가 있으면 위 enable_amp 은 무시됨 (wesep/utils/precision.py)
 # model.compile() 로 학습 스텝을 감쌈. 150 에포크에 약 4.6시간 줄어듦(실측).
 # 컴파일은 run 당 1회 113초. 추론(infer.py)에는 걸지 않음.
 # 근거는 notebooks/bsrnn_compile_axes_yaml.ipynb

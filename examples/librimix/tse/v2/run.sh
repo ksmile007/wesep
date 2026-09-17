@@ -59,6 +59,16 @@ tracker=both
 # 아래 log_batch_interval 과는 별개임 — 그것은 train.log 에 표를 찍는 주기임
 tracker_step_interval=50
 
+# 학습 정밀도 — Lightning 과 같은 이름. 이 하나가 autocast 와 GradScaler 를 다 정함.
+#   32-true     : fp32.      autocast 꺼짐, GradScaler 꺼짐
+#   16-mixed    : fp16 혼합.  autocast 켜짐, GradScaler **켜짐**
+#   bf16-mixed  : bf16 혼합.  autocast 켜짐, GradScaler 꺼짐 (지수부가 fp32 와 같아 불필요)
+# 이 값이 본 config 의 옛 키 enable_amp 을 **항상 덮어씀.**
+# 그래서 16-mixed 로 둠 - Table 2 의 bsrnn_ecapa_*.yaml 4개가 enable_amp: true 라
+# 기존 run 과 같은 fp16 으로 유지됨. enable_amp: false 인 config 를 그 뜻대로 돌리려면
+# 여기를 32-true 로 바꾸거나 --precision 32-true 를 줄 것
+precision=16-mixed
+
 # Debug 관련 — 짧게 돌려 "도는가 · GPU 메모리가 되는가" 만 볼 때.
 # 아래 dev/ 경로들은 Libri2Mix 의 검증 분할이라 뜻이 다름. 헷갈리지 말 것
 debug=false                    # true 면 아래 debug_config 를 본 config 위에 덮어씀
@@ -123,6 +133,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --num_avg ${num_avg} \
     --tracker ${tracker} \
     --tracker_step_interval ${tracker_step_interval} \
+    --precision ${precision} \
     --data_type "${data_type}" \
     --train_data ${data}/train-100/${data_type}.list \
     --train_utt2spk ${data}/train-100/single.utt2spk \

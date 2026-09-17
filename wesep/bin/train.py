@@ -42,6 +42,8 @@ from wesep.utils.file_utils import (
     read_vec_scp_file,
 )
 from wesep.utils.losses import parse_loss
+# <<<<< 더한 것 - precision 하나로 autocast·GradScaler 를 결정
+from wesep.utils.precision import parse_precision
 from wesep.utils.utils import parse_config_or_kwargs, set_seed, setup_logger
 
 MAX_NUM_log_files = 100  # The maximum number of log-files to be kept
@@ -284,7 +286,11 @@ def train(config="conf/config.yaml", **kwargs):
     # <<<<< 고친 것 - torch.cuda.amp.* 가 FutureWarning 을 냄. torch.amp.* 로 옮김.
     #       두 API 는 같은 구현임 (torch.cuda.amp 쪽이 torch.amp 를 상속해 super() 를 부름).
     #       device_type 은 위에서 이미 정해 둔 device 를 그대로 씀 - cpu 로 돌려도 깨지지 않게
-    scaler = torch.amp.GradScaler(device.type, enabled=configs["enable_amp"])
+    # <<<<< 고친 것 - precision 하나가 autocast·dtype·GradScaler 를 다 정함.
+    #       bf16-mixed 는 지수부가 fp32 와 같아 scaler 가 필요 없으므로 꺼짐.
+    #       precision 이 없으면 옛 키 enable_amp 으로 떨어짐 - 원본 config 호환
+    enable_amp, amp_dtype, scaler_enabled = parse_precision(configs)
+    scaler = torch.amp.GradScaler(device.type, enabled=scaler_enabled)
 
     # If specify checkpoint, load some info from checkpoint.
     if checkpoint is not None:
@@ -336,7 +342,8 @@ def train(config="conf/config.yaml", **kwargs):
             scaler=scaler,
             epoch=epoch,
             logger=logger,
-            enable_amp=configs["enable_amp"],
+            enable_amp=enable_amp,
+            amp_dtype=amp_dtype,
             clip_grad=configs["clip_grad"],
             log_batch_interval=configs["log_batch_interval"],
             device=device,
@@ -355,7 +362,8 @@ def train(config="conf/config.yaml", **kwargs):
             criterion,
             epoch=epoch,
             logger=logger,
-            enable_amp=configs["enable_amp"],
+            enable_amp=enable_amp,
+            amp_dtype=amp_dtype,
             log_batch_interval=configs["log_batch_interval"],
             device=device,
         )

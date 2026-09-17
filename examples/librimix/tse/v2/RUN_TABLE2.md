@@ -133,7 +133,9 @@ bash run.sh --stage 1 --stop-stage 2
 ```bash
 CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
   --config confs/bsrnn_ecapa_FiLM.yaml \
-  --exp_dir exp/bsrnn_ecapa_FiLM
+  --exp_dir exp/bsrnn_ecapa_FiLM \
+  --precision bf16-mixed \
+  --tracker both
 ```
 
 | 인자 | 뜻 |
@@ -142,6 +144,7 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
 | `--config` | fusion 을 정하는 파일 |
 | `--exp_dir` | 체크포인트와 로그가 쌓이는 곳. **fusion 마다 달라야 함** |
 | `--debug true` | **짧게 시험할 때만.** 3 epoch × 5 스텝만 돌고 결과 폴더가 `_debug` 로 갈림.<br>상세는 [짧게 시험해 보기](#짧게-시험해-보기--debug-모드) 절 |
+| `--precision` | 학습 정밀도. `32-true` · `16-mixed` · `bf16-mixed`.<br>기본값은 [run.sh:70](run.sh#L70) 의 `16-mixed`. 이 값이 config 의 `enable_amp` 을 **항상 덮어씀** |
 | `--tracker` | 학습 곡선 기록. `none` · `tensorboard` · `both`.<br>기본값은 [run.sh:52](run.sh#L52) 의 `both` |
 | `--tracker_step_interval` | 몇 스텝마다 기록할지. 기본 50, `0` 이면 에포크만.<br>[run.sh:60](run.sh#L60) |
 
