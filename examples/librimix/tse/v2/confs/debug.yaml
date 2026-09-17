@@ -32,8 +32,9 @@ dataset_args:
 #   slow_sec: 1          # 막대가 도는지 눈으로 보려고 샘플마다 1초 쉼.
                          # 주석을 풀면 버퍼 채우기가 shuffle_size 초만큼 걸림. 확인용으로만 쓸 것
 
-# GPU 메모리가 모자라면 아래 두 줄의 주석을 풀어 배치를 낮춤.
-# batch_size 는 "혼합 개수" 이고, tse_collate_fn(dataset.py:218-224) 이
+# GPU 메모리 대비 — batch_size 는 "혼합 개수" 이고, tse_collate_fn(dataset.py:218-224) 이
 # 혼합 하나를 화자 2명 각각의 타깃으로 복제하므로 모델이 보는 배치는 그 2배임.
-# dataloader_args:
-#   batch_size: 4
+# 본 config 의 8 은 V100(32GB) 기준이라(bsrnn.yaml:2) RTX 3090(24GB) 에서는 OOM 임 - 실측.
+# 본 학습에서는 본 config 의 8 이 그대로 쓰임
+dataloader_args:
+  batch_size: 2
