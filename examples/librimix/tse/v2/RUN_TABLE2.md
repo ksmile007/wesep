@@ -191,6 +191,31 @@ tail -f exp/bsrnn_ecapa_FiLM/train.log
 > **첫 스텝에서 약 113초 멈춘 것처럼 보입니다.** `compile_model: true` 라
 > PyTorch 가 모델을 컴파일하는 시간입니다. 고장이 아닙니다.
 
+**정말 돌고 있는지 보려면** `TORCH_LOGS` 를 붙여 다시 띄웁니다.
+
+```bash
+TORCH_LOGS="dynamo" CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
+  --config confs/bsrnn_ecapa_FiLM.yaml \
+  --exp_dir exp/bsrnn_ecapa_FiLM \
+  --precision bf16-mixed \
+  --tracker both
+```
+
+환경변수라 `run.sh` → `torchrun` → `train.py` 까지 그대로 내려갑니다. `run.sh` 는 고칠 필요가 없습니다.
+
+| 값 | 무엇이 보이나 |
+|---|---|
+| `dynamo` | 추적 중인 함수가 계속 찍힘 — **멈춘 게 아니라는 확인** |
+| `recompiles` | 재컴파일 이유. 113초가 **여러 번** 나오면 이것부터 봅니다 |
+| `graph_breaks` | 그래프가 끊기는 지점. 컴파일이 느린 이유를 팔 때 |
+
+| 주의 | 내용 |
+|---|---|
+| `train.log` 에는 **안 남습니다** | torch 가 stderr 로 직접 뱉는데, `train.log` 는 파이썬 logging 파일 핸들러가 씁니다.<br>파일로 받으려면 `nohup ... > out.log 2>&1` 처럼 stderr 를 같이 받으세요 |
+| 양이 많습니다 | `dynamo` 는 수천 줄입니다. **확인할 때만 켜고 평소에는 빼세요** |
+| 모든 rank 가 찍습니다 | GPU 여러 장으로 돌리면 같은 메시지가 장 수만큼 나옵니다 |
+| 진행률(%)은 안 나옵니다 | torch 가 총 컴파일 시간을 미리 모릅니다. 나오는 것은 **단계 메시지**뿐입니다 |
+
 #### 2-1-1. 중간에 끊겼다면
 
 **같은 명령을 그대로 다시 치면 됩니다.** stage 3 이 `latest_checkpoint.pt` 를 자동으로
@@ -392,7 +417,7 @@ Lightning `CSVLogger` 형식입니다. 그 시점에 없는 지표는 빈 칸으
 |---|---|
 | `import wesep` 가 안 됨 | **작업 디렉토리가 틀림.** `examples/librimix/tse/v2` 에서 `run.sh` 를 불러야 `path.sh` 가 `PYTHONPATH` 를 잡음 |
 | 로그의 GPU 번호가 항상 `0` | 정상임. `CUDA_VISIBLE_DEVICES=N` 을 주면 그 프로세스는 한 장만 보고 그것을 `0` 이라 부름 |
-| 첫 스텝에서 2분 멈춤 | `compile_model: true` 의 컴파일 시간(약 113초). run 당 한 번뿐임 |
+| 첫 스텝에서 2분 멈춤 | `compile_model: true` 의 컴파일 시간(약 113초). run 당 한 번뿐임.<br>정말 도는지 보려면 `TORCH_LOGS="dynamo"` 를 붙여 실행 — [2-1](#2-1-학습-stage-3) 절 |
 | 학습이 엉뚱한 가중치에서 시작 | **`exp_dir` 이 겹쳤음.** stage 3 은 그 폴더의 `latest_checkpoint.pt` 를 무조건 이어받음 |
 | 체크포인트 로드에서 에러 | `strict=True` 라 키가 안 맞으면 죽음. 예전에는 조용히 넘어가 **랜덤 초기화로 학습되는 사고**가 났었음 |
 | `--avg_epochs` 를 뭘 넣을지 모름 | `run.sh` 기본값은 `"138,141"` 임. **run 마다 `val_loss` 를 보고 다시 고를 것** |
