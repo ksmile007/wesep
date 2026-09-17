@@ -133,12 +133,10 @@ dependencies:
       - thop==0.1.1-2209072238
       - threadpoolctl==3.6.0
       - torchmetrics==1.2.0
-      - torchnet==0.0.4
       - tornado==6.5.8
       - tqdm==4.64.0
       - urllib3==2.6.3
       - virtualenv==21.7.9
-      - visdom==0.2.4
       - wcwidth==0.8.3
       - websocket-client==1.9.0
 prefix: /root/miniconda3/envs/wesep
