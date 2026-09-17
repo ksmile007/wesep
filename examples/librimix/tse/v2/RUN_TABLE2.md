@@ -130,6 +130,18 @@ bash run.sh --stage 1 --stop-stage 2
 
 ### 2-1. 학습 (stage 3)
 
+**먼저 wandb 에 로그인합니다.** 아래 명령의 `--tracker both` 가 학습 곡선을
+wandb 로 실시간 업로드하기 때문입니다.
+
+```bash
+wandb login       # 브라우저에서 받은 API 키를 붙여넣습니다
+```
+
+**한 번만 하면 됩니다.** 키가 `~/.netrc` 에 저장되어 conda 환경·터미널과 무관하게 유지됩니다.
+안 하고 돌리면 `UsageError: No API key configured. Use 'wandb login' to log in.` 로 죽습니다.
+wandb 없이 돌리려면 `--tracker tensorboard` 로 바꾸면 됩니다 —
+`metrics.csv` 와 tfevents 는 그대로 남습니다.
+
 ```bash
 CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
   --config confs/bsrnn_ecapa_FiLM.yaml \
