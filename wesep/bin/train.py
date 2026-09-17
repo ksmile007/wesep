@@ -42,6 +42,8 @@ from wesep.utils.file_utils import (
     read_vec_scp_file,
 )
 from wesep.utils.losses import parse_loss
+# <<<<< 더한 것 - CSV·텐서보드 동시 기록기
+from wesep.utils.metric_logger import make_logger, log_epoch, log_step  # noqa: F401
 from wesep.utils.utils import parse_config_or_kwargs, set_seed, setup_logger
 
 MAX_NUM_log_files = 100  # The maximum number of log-files to be kept
@@ -341,7 +343,27 @@ def train(config="conf/config.yaml", **kwargs):
         except ImportError as e:
             logger.warning("tracker 를 끔 - {}".format(e))
 
-    executor = Executor()
+    # <<<<< 더한 것 - CSV 와 텐서보드에 같은 값을 라이브로 씀.
+    #       CSV 는 tracker 설정과 무관하게 항상 씀 - tracker=none 으로 돌린 run 도
+    #       나중에 비교 대상이 되고, CSV 는 외부 의존성이 없기 때문임.
+    #       tfevents 는 writer 가 있을 때만 씀.
+    #       tracker_step_interval 스텝마다 스텝 손실을, 에포크마다 train/val 을 남김.
+    #       0 이면 스텝 기록을 끄고 에포크만 남김
+    if rank == 0:
+        mlog = make_logger(
+            configs["exp_dir"], writer=writer,
+            step_interval=configs.get("tracker_step_interval", 50),
+        )
+        logger.info(f"metrics csv -> {configs['exp_dir']} (step_interval={mlog['interval']})")
+    else:
+        mlog = make_logger(configs["exp_dir"], writer=None, step_interval=0)
+        # mlog = None
+
+    # <<<<< 고친 것 - 스텝 단위 기록기를 생성자로 넘김.
+    #       executor.train() 이 self.mlog 를 보고 tracker_step_interval 스텝마다 기록함.
+    #       에포크 기록은 아래 루프에 남음 - val_loss 는 executor.cv() 가 따로 내므로
+    #       executor.train() 안에서는 볼 수 없음
+    executor = Executor(mlog)
     executor.step = 0
 
     train_losses = []
@@ -392,12 +414,14 @@ def train(config="conf/config.yaml", **kwargs):
             train_losses.append(train_loss)
             val_losses.append(val_loss)
 
-            # <<<<< 더한 것 - SISDR 이라 음수이고 작을수록 좋음
-            if writer is not None:
-                writer.add_scalar("train/loss", train_loss, epoch)
-                writer.add_scalar("val/loss", val_loss, epoch)
-                writer.add_scalar("train/lr",
-                                  optimizer.param_groups[0]["lr"], epoch)
+            # <<<<< 더한 것 - SISDR 이라 음수이고 작을수록 좋음.
+            #       CSV(metrics_epoch.csv)와 tfevents 에 같은 값을 씀
+            log_epoch(mlog, {
+                "epoch": epoch,
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+                "lr": optimizer.param_groups[0]["lr"],
+            })
 
             best_loss = val_loss
             scheduler.best = best_loss
@@ -459,7 +483,8 @@ def train(config="conf/config.yaml", **kwargs):
         )
         logger.info(tp.bottom(len(header), width=10, style="grid"))
 
-    # <<<<< 더한 것 - wandb 는 finish() 를 안 부르면 run 이 running 으로 남음
+    # <<<<< 더한 것 - CSV 는 쓸 때마다 닫으므로 여기서 할 일이 없음.
+    #       wandb 는 finish() 를 안 부르면 run 이 running 으로 남음
     if writer is not None:
         writer.close()
         if configs["tracker"] == "both":

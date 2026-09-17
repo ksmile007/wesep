@@ -24,13 +24,19 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 import torch
 
 from wesep.utils.funcs import clip_gradients, compute_fbank, apply_cmvn
+# <<<<< 더한 것 - 스텝 단위 CSV·텐서보드 기록
+from wesep.utils.metric_logger import log_step
 import random
 
 
 class Executor:
 
-    def __init__(self):
+    # <<<<< 고친 것 - mlog 를 생성자로 받음.
+    #       metric_logger.make_logger() 가 만든 dict 또는 None.
+    #       안 넘기면 None 이라 스텝 기록만 안 할 뿐 기존 동작 그대로임
+    def __init__(self, mlog=None):
         self.step = 0
+        self.mlog = mlog
 
     # <<<<< 더한 것 - logger.info 가 tqdm 막대와 같은 줄에 겹쳐 찍히는 것을 막음.
     #       이 함수 안의 로깅을 tqdm.write 로 흘려보내 막대를 지웠다 다시 그리게 함.
@@ -138,6 +144,21 @@ class Executor:
 
                 losses.append(loss.item())
                 total_loss_avg = sum(losses) / len(losses)
+
+                # <<<<< 더한 것 - tracker_step_interval 스텝마다 CSV·텐서보드에 기록.
+                #       아래 dict 의 key 가 metrics_step.csv 의 열 이름이 됨 —
+                #       지표를 늘리려면 여기에 key 를 하나 더 넣으면 됨.
+                #       cur_iter 는 위에서 이미 계산해 둔 전역 스텝 번호임.
+                #       간격 판정과 mlog=None 처리는 log_step 안에서 하므로
+                #       여기서는 매 스텝 그냥 부르면 됨
+                log_step(self.mlog, {
+                    "epoch": epoch,
+                    "step": i + 1,
+                    "global_step": cur_iter,
+                    "loss": losses[-1],
+                    "running_mean": total_loss_avg,
+                    "lr": optimizer.param_groups[0]["lr"],
+                })
 
                 # updata the model
                 optimizer.zero_grad()

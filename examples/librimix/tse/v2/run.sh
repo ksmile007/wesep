@@ -51,6 +51,14 @@ num_avg=10                 # final 일 때만. 마지막 몇 개를 평균할지
 # wandb 로그인은 ~/.netrc 에 저장되므로 conda 환경과 무관함
 tracker=both
 
+# 지표 CSV — exp_dir 에 metrics_step.csv · metrics_epoch.csv 를 씀.
+# tracker 설정과 **무관하게 항상** 기록함 (tracker=none 인 run 도 비교 대상이므로).
+# 한 줄 쓸 때마다 flush+fsync 하므로 도는 중에 tail -f 로 볼 수 있음.
+#   50 : 50 스텝마다 스텝 손실을 남김
+#    0 : 스텝 기록을 끄고 에포크만 남김
+# 아래 log_batch_interval 과는 별개임 — 그것은 train.log 에 표를 찍는 주기임
+tracker_step_interval=50
+
 # Debug 관련 — 짧게 돌려 "도는가 · GPU 메모리가 되는가" 만 볼 때.
 # 아래 dev/ 경로들은 Libri2Mix 의 검증 분할이라 뜻이 다름. 헷갈리지 말 것
 debug=false                    # true 면 아래 debug_config 를 본 config 위에 덮어씀
@@ -114,6 +122,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --gpus $gpus \
     --num_avg ${num_avg} \
     --tracker ${tracker} \
+    --tracker_step_interval ${tracker_step_interval} \
     --data_type "${data_type}" \
     --train_data ${data}/train-100/${data_type}.list \
     --train_utt2spk ${data}/train-100/single.utt2spk \
