@@ -22,6 +22,8 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 
 # if your python version < 3.7 use the below one
 import torch
+# <<<<< 더한 것 - 에포크 손실을 rank 끼리 합치는 데 씀
+import torch.distributed as dist
 
 from wesep.utils.funcs import clip_gradients, compute_fbank, apply_cmvn
 # <<<<< 더한 것 - CSV·텐서보드·wandb 기록을 맡는 클래스
@@ -45,6 +47,21 @@ class Executor:
     # <<<<< 더한 것 - tfevents 를 닫고 wandb run 을 마감함
     def close(self):
         self.tracker.close()
+
+    # <<<<< 더한 것 - 에포크 손실을 전체 데이터 기준 평균으로 만듦.
+    #       rank 마다 자기 배치만 보므로 (가중합, 샘플 수) 를 한 번에 더해 나눔 —
+    #       평균을 다시 평균내면 rank 별 샘플 수가 다를 때 틀림.
+    #       집합통신이라 **모든 rank 가 불러야 함.** rank 가드 안에 두면 영구 대기함
+    @staticmethod
+    def _global_mean(total_loss, n_samples, device):
+        if not (dist.is_available() and dist.is_initialized()):
+            return total_loss / n_samples
+        # float64 로 둠 - 기본 float32 면 끝자리가 1e-07 쯤 깎여
+        # 단일 GPU 경로(파이썬 float)와 값이 갈림(실측)
+        stat = torch.tensor([total_loss, float(n_samples)],
+                            dtype=torch.float64, device=device)
+        dist.all_reduce(stat, op=dist.ReduceOp.SUM)
+        return (stat[0] / stat[1]).item()
 
     # <<<<< 더한 것 - logger.info 가 tqdm 막대와 같은 줄에 겹쳐 찍히는 것을 막음.
     #       이 함수 안의 로깅을 tqdm.write 로 흘려보내 막대를 지웠다 다시 그리게 함.
@@ -84,6 +101,11 @@ class Executor:
         log_interval = log_batch_interval
         accum_grad = 1
         losses = []
+        # <<<<< 더한 것 - 누적합을 들고 감. sum(losses) 를 매 스텝 다시 도는 것은
+        #       스텝 수에 대해 O(n^2) 임 - 값은 비트 단위로 같음(실측).
+        #       배치 평균이 아니라 **샘플 수로 가중**해 더함 - 마지막 배치가 작아도 맞음
+        total_loss = 0.0
+        n_samples = 0
 
         if isinstance(model, torch.nn.parallel.DistributedDataParallel):
             model_context = model.join
@@ -153,11 +175,23 @@ class Executor:
                                 outputs[se_loss_weight[0][ii][ji]],
                                 targets).mean() / accum_grad)
 
+                # targets 의 0번 축이 criterion 이 평균낸 샘플 수임
+                # (tse_collate_fn 이 혼합 하나를 화자 수만큼 늘려 놓은 뒤의 값)
+                n_batch = targets.shape[0]
                 losses.append(loss.item())
-                total_loss_avg = sum(losses) / len(losses)
+                total_loss += losses[-1] * n_batch
+                n_samples += n_batch
+                total_loss_avg = total_loss / n_samples
+
+                # <<<<< 더한 것 - 막대 오른쪽에 손실을 띄움. 표는 log_interval 마다만 찍혀
+                #       그 사이가 깜깜했음. loss 는 그 배치, avg_loss 는 에포크 누적 평균임
+                steps.set_postfix(
+                    {"loss":        f"{losses[-1] * accum_grad:.4f}",
+                     "avg_loss":    f"{total_loss_avg * accum_grad:.4f}"}
+                )
 
                 # <<<<< 더한 것 - tracker_step_interval 스텝마다 CSV·텐서보드에 기록.
-                #       아래 dict 의 key 가 metrics_step.csv 의 열 이름이 됨 —
+                #       아래 dict 의 key 가 metrics.csv 의 열 이름이 됨 —
                 #       지표를 늘리려면 여기에 key 를 하나 더 넣으면 됨.
                 #       cur_iter 는 위에서 이미 계산해 둔 전역 스텝 번호임.
                 #       간격 판정과 rank 판정은 Tracker 가 하므로
@@ -194,7 +228,8 @@ class Executor:
                         ))
                 if (i + 1) == epoch_iter:
                     break
-            total_loss_avg = sum(losses) / len(losses)
+            # <<<<< 더한 것 - 여기까지는 이 rank 가 본 배치만의 평균임
+            total_loss_avg = self._global_mean(total_loss, n_samples, device)
 
             # <<<<< 더한 것 - 학습 에포크 지표를 값이 생긴 자리에서 기록함.
             #       cur_iter 는 cv() 도 x축으로 써야 하므로 self 에 남겨 둠
@@ -228,6 +263,8 @@ class Executor:
         model.eval()
         log_interval = log_batch_interval
         losses = []
+        total_loss = 0.0    # <<<<< 더한 것 - train() 과 같은 이유
+        n_samples = 0
 
         with torch.no_grad():
             # <<<<< 고친 것 - 검증도 같은 방식으로 막대를 둠
@@ -254,8 +291,18 @@ class Executor:
                     # of the validation set.
                     loss = criterion[0](outputs[0], targets).mean()
 
+                n_batch = targets.shape[0]
                 losses.append(loss.item())
-                total_loss_avg = sum(losses) / len(losses)
+                total_loss += losses[-1] * n_batch
+                n_samples += n_batch
+                total_loss_avg = total_loss / n_samples
+
+                # <<<<< 더한 것 - 학습 막대와 같은 표기. 검증은 중간 로그가 없어
+                #       끝나야 값이 보였음
+                steps.set_postfix(
+                    {"loss":        f"{losses[-1]:.4f}",
+                     "avg_loss":    f"{total_loss_avg:.4f}"}
+                )
 
                 if (i + 1) % log_interval == 0:
                     logger.info(
@@ -266,6 +313,10 @@ class Executor:
                         ))
                 if (i + 1) == val_iter:
                     break
+
+        # <<<<< 더한 것 - train() 과 같은 이유로 rank 끼리 합침.
+        #       with torch.no_grad() 블록 밖이지만 모든 rank 가 지나는 자리임
+        total_loss_avg = self._global_mean(total_loss, n_samples, device)
 
         # <<<<< 더한 것 - 검증 에포크 지표. 학습 쪽은 train() 이 따로 기록함.
         #       x축은 train() 이 남긴 전역 스텝을 씀 - cv() 는 그 값을 모름.
