@@ -74,8 +74,11 @@ class Tracker:
         elif self.tracker == "tensorboard":
             self.loggers.append(TensorBoardLogger(save_dir=self.exp_dir, name="tb"))
         elif self.tracker == "both":
-            # wandb 를 SummaryWriter 보다 먼저 만들어야 함 — wandb 가
-            # SummaryWriter 를 가로채는 방식이라 뒤집히면 wandb 가 빈 run 이 됨
+            # 순서 제약은 없음 — 아래 WandbLogger 는 sync_tensorboard 를 안 넘기므로
+            # wandb 가 SummaryWriter 를 가로채지 않음(lightning 2.6.0 소스 확인).
+            # tfevents 는 TensorBoardLogger 가 따로 씀.
+            # cbfce22 의 raw SummaryWriter 방식에서는 순서가 중요했고,
+            # 9afd0ee 가 Lightning 로거로 바꾸며 그 근거가 없어졌음
             wandb_run_name = os.path.basename(self.exp_dir.rstrip("/"))
             self.loggers.append(
                 WandbLogger(

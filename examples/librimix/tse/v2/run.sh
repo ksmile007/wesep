@@ -47,7 +47,7 @@ num_avg=10                 # final 일 때만. 마지막 몇 개를 평균할지
 #   none        : 안 함 (원본 동작)
 #   tensorboard : 로컬 파일만
 #   both        : 로컬 파일 + wandb 실시간 업로드
-# both 는 wandb 가 SummaryWriter 를 가로채는 방식이라 tfevents 도 그대로 남음.
+# both 는 wandb 와 텐서보드를 각각 따로 씀 — TensorBoardLogger 가 tfevents 를 남김.
 # wandb 로그인은 ~/.netrc 에 저장되므로 conda 환경과 무관함
 tracker=both
 

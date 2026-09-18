@@ -9,8 +9,9 @@ Libri2Mix 가 사라져 run.sh stage 3 을 못 돌리므로, 데이터로더만 
   모델   : confs/bsrnn.yaml 의 BSRNN (ResNet34 화자 인코더 포함)
   손실   : wesep.utils.losses 의 SISDR (auraloss.time.SISDRLoss)
   최적화 : Adam + clip_gradients + GradScaler(enabled=False)
-           executor.py:143-149 와 같은 순서
-  손실집계: sum(losses)/len(losses)  — executor.py:166 과 같은 정의
+           executor.py:208-214 와 같은 순서
+  손실집계: sum(losses)/len(losses) — 58a7734 이후 executor.py:184·232 는
+            샘플 수 가중(total_loss / n_samples)이라 이 probe 와 정의가 다름
 
 배치는 전역 RNG 와 분리된 torch.Generator(seed=1234) 로 **한 번 만들어 고정**함.
 그래서 run 사이에 입력이 달라질 여지가 없음 — 남는 변인은 커널 선택뿐임.
@@ -54,7 +55,7 @@ def main():
                     choices=["none", "tensorboard", "both"])
     ap.add_argument("--benchmark", default="true")
     ap.add_argument("--deterministic", default="false",
-                    help="wesep/utils/utils.py:115 에 주석 처리된 "
+                    help="wesep/utils/utils.py:117 에 주석 처리된 "
                          "torch.backends.cudnn.deterministic 을 켜 봄")
     ap.add_argument("--strict_det", default="false",
                     help="torch.use_deterministic_algorithms(True, warn_only=True). "
@@ -69,8 +70,8 @@ def main():
 
     configs = yaml.safe_load(open(a.config))
 
-    # train.py:88 과 같은 자리. set_seed 안에서 cudnn.benchmark = True 가 켜지므로
-    # (wesep/utils/utils.py:116) 그 뒤에 덮어써야 함
+    # train.py:90 과 같은 자리. set_seed 안에서 cudnn.benchmark = True 가 켜지므로
+    # (wesep/utils/utils.py:118) 그 뒤에 덮어써야 함
     set_seed(configs["seed"])
     torch.backends.cudnn.benchmark = as_bool(a.benchmark)
     torch.backends.cudnn.deterministic = as_bool(a.deterministic)
@@ -84,7 +85,8 @@ def main():
     os.makedirs(exp_dir, exist_ok=True)
 
     # tracker 블록 — train.py 와 **순서가 다름.** 일부러 그렇게 둔 것임
-    #   train.py : set_seed(88) -> 모델 생성(219) -> DDP(243) -> tracker(322-342)
+    #   train.py : set_seed(90) -> 모델(221) -> DDP(245) -> Executor(335)
+    #              tracker 는 9afd0ee 이후 Executor 안으로 들어갔음
     #   이 probe : set_seed     -> tracker        -> 모델 생성
     # tracker 를 모델 생성보다 앞에 두면, tracker 가 전역 RNG 를 한 눈금이라도
     #소비할 경우 초기 가중치가 달라져 loss_step1 이 바로 갈림 — 즉 train.py 순서보다
@@ -145,7 +147,7 @@ def main():
             if step1 is None:
                 step1 = loss.item()
 
-            # executor.py:143-149 와 같은 순서
+            # executor.py:208-214 와 같은 순서
             optimizer.zero_grad()
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)

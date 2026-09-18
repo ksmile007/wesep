@@ -234,7 +234,7 @@ SCOPES = {
 
 
 def train_step(model, optimizer, scaler, batch, prec):
-    """executor.py:103-149 의 한 스텝을 그대로 옮긴 것.
+    """executor.py:142-214 의 한 스텝을 그대로 옮긴 것.
 
     loss.item() 만 뺐음 — GPU 동기화를 강제해 스텝 시간 측정을 왜곡하기 때문임.
     """

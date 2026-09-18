@@ -66,7 +66,7 @@ def main():
     p.add_argument("--cudnn_enabled", default="true")
     p.add_argument("--amp", default="false")
     # 실제 학습은 등록 발화를 통째로 읽고 collate 가 배치 최소 길이로 자르므로
-    # ResNet34 의 conv 입력 t 축이 스텝마다 달라짐(processor.py:477-479).
+    # ResNet34 의 conv 입력 t 축이 스텝마다 달라짐(processor.py:527·554·557).
     # cudnn.benchmark 의 알고리즘 캐시 키에 shape 이 들어가므로
     # shape 이 바뀌면 스텝마다 재탐색이 일어남 — 그 조건을 재현하는 축임
     p.add_argument("--enr_len", default="335",
@@ -80,8 +80,8 @@ def main():
     configs = yaml.safe_load(open(a.config))
     seed = a.seed if a.seed is not None else configs["seed"]
 
-    # train.py:88 과 같은 자리. set_seed 안에서 cudnn.benchmark = True 가
-    # 켜지므로(wesep/utils/utils.py:116) 요인 설정은 그 뒤에 와야 함
+    # train.py:90 과 같은 자리. set_seed 안에서 cudnn.benchmark = True 가
+    # 켜지므로(wesep/utils/utils.py:118) 요인 설정은 그 뒤에 와야 함
     set_seed(seed)
     torch.backends.cudnn.enabled = as_bool(a.cudnn_enabled)
     torch.backends.cudnn.benchmark = as_bool(a.benchmark)
@@ -95,7 +95,8 @@ def main():
     exp_dir = a.exp_dir or str(Path(__file__).resolve().parents[1] /
                                f"_runs/fs/{a.arm}_g{a.gpu}_r{a.rep}")
     # tracker 블록 — train.py 와 **순서가 다름.** 일부러 그렇게 둔 것임
-    #   train.py : set_seed(88) -> 모델 생성(219) -> DDP(243) -> tracker(322-342)
+    #   train.py : set_seed(90) -> 모델(221) -> DDP(245) -> Executor(335)
+    #              tracker 는 9afd0ee 이후 Executor 안으로 들어갔음
     #   이 probe : set_seed     -> tracker        -> 모델 생성
     # tracker 를 앞에 두면 tracker 가 전역 RNG 를 소비할 때 초기 가중치가 달라져
     # loss_step1 이 바로 갈림 — train.py 순서보다 **더 엄격한** 검사임
