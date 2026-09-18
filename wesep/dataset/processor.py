@@ -352,7 +352,8 @@ def shuffle(data, shuffle_size=2500, slow_sec=0):
     #       줄이 겹치지 않게 0번 GPU(RANK)의 0번 워커만 그림.
     #       RANK 는 torchrun 이 넣어 주고 워커 프로세스가 그대로 물려받음
     info = torch.utils.data.get_worker_info()
-    is_rank0_worker0 = int(os.environ.get("RANK", 0)) == 0 and (info is None or info.id == 0)
+    is_rank0_worker0 = (int(os.environ.get("RANK", 0)) == 0
+                        and (info is None or info.id == 0))
     # 끝값은 config 의 shuffle_size 그대로. 워커가 각자 그만큼 채우므로 시스템 전체로는
     # 그 num_workers 배를 읽지만(실측), 여기서 세는 것은 0번 워커 자기 몫이라 1:1 로 둠
     bar = tqdm.tqdm(total=shuffle_size, desc="<shuffle> Data ready", leave=False,
