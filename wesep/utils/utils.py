@@ -39,6 +39,12 @@ def get_logger(outdir, fname):
         level=logging.DEBUG,
         format="[ %(levelname)s : %(asctime)s ] - %(message)s",
     )
+    # <<<<< 더한 것 - fsspec 이 파일을 열 때마다 "open file: ..." 을 DEBUG 로 찍음.
+    #       Tracker 가 기록할 때마다 CSVLogger.save() 를 불러 그 줄이 쏟아졌음.
+    #       train.log 가 아니라 **터미널(stderr)** 로 감 - 이 로거에는 핸들러가 없어
+    #       root 의 StreamHandler 로만 전파되기 때문임
+    #       위 basicConfig 의 DEBUG 는 원본 그대로 두고 이 로거만 올림
+    logging.getLogger("fsspec.local").setLevel(logging.WARNING)
     logger = logging.getLogger("Pyobj, f")
     # Dump log to file
     fh = logging.FileHandler(os.path.join(outdir, fname))

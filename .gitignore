@@ -37,6 +37,7 @@ exp
 data
 raw_wav
 tensorboard
+wandb
 **/*build*
 wespeaker_models
 

@@ -130,10 +130,24 @@ bash run.sh --stage 1 --stop-stage 2
 
 ### 2-1. 학습 (stage 3)
 
+**먼저 wandb 에 로그인합니다.** 아래 명령의 `--tracker both` 가 학습 곡선을
+wandb 로 실시간 업로드하기 때문입니다.
+
+```bash
+wandb login       # 브라우저에서 받은 API 키를 붙여넣습니다
+```
+
+**한 번만 하면 됩니다.** 키가 `~/.netrc` 에 저장되어 conda 환경·터미널과 무관하게 유지됩니다.
+안 하고 돌리면 `UsageError: No API key configured. Use 'wandb login' to log in.` 로 죽습니다.
+wandb 없이 돌리려면 `--tracker tensorboard` 로 바꾸면 됩니다 —
+`metrics.csv` 와 tfevents 는 그대로 남습니다.
+
 ```bash
 CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
   --config confs/bsrnn_ecapa_FiLM.yaml \
-  --exp_dir exp/bsrnn_ecapa_FiLM
+  --exp_dir exp/bsrnn_ecapa_FiLM \
+  --precision bf16-mixed \
+  --tracker both
 ```
 
 | 인자 | 뜻 |
@@ -141,8 +155,30 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
 | `CUDA_VISIBLE_DEVICES=0` | **물리 GPU 번호.** 이 프로세스는 그 한 장만 보게 됨 |
 | `--config` | fusion 을 정하는 파일 |
 | `--exp_dir` | 체크포인트와 로그가 쌓이는 곳. **fusion 마다 달라야 함** |
+| `--debug true` | **짧게 시험할 때만.** 3 epoch × 5 스텝만 돌고 결과 폴더가 `_debug` 로 갈림.<br>상세는 [짧게 시험해 보기](#짧게-시험해-보기--debug-모드) 절 |
+| `--precision` | 학습 정밀도. `32-true` · `16-mixed` · `bf16-mixed`.<br>기본값은 [run.sh:75](run.sh#L75) 의 `16-mixed`. 이 값이 config 의 `enable_amp` 을 **항상 덮어씀** |
+| `--tracker` | 학습 곡선 기록. `none` · `tensorboard` · `both`.<br>기본값은 [run.sh:52](run.sh#L52) 의 `both` |
+| `--tracker_step_interval` | 몇 스텝마다 기록할지. 기본 50, `0` 이면 에포크만.<br>[run.sh:64](run.sh#L64) |
 
-`--data` 는 주지 않습니다 — [run.sh:74](run.sh#L74) 이 기본값 `data` 에
+**본 학습 전에 `--debug true` 로 한 번 돌려 볼 것.**
+40시간짜리를 띄워 놓고 3시간 뒤에 GPU 메모리 부족으로 죽은 것을 발견하는 일을 막아 줍니다.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
+  --config confs/bsrnn_ecapa_FiLM.yaml \
+  --exp_dir exp/bsrnn_ecapa_FiLM \
+  --debug true
+```
+
+`--debug true` 는 [confs/debug.yaml](confs/debug.yaml) 을 본 config 위에 덮어씁니다
+(`num_epochs: 3` · `steps_per_epoch: 5` · `compile_model: false` 등).
+**본 config 파일 자체는 바뀌지 않습니다** — [run.sh:91](run.sh#L91) 이 합친 임시 파일을
+`exp_dir/config_debug.yaml` 로 따로 만들어 그것을 씁니다.
+
+> SD-FiLM 저장소의 `--config-name=dev` 와 **이름이 다릅니다.**
+> 그쪽은 Hydra 이고 여기는 bash 인자입니다. wesep 에서는 `--debug true` 뿐입니다.
+
+`--data` 는 주지 않습니다 — [run.sh:105](run.sh#L105) 가 기본값 `data` 에
 `noise_type`(`clean`)을 붙여 `data/clean` 을 만듭니다.
 `--data data/clean` 을 주면 `data/clean/clean` 이 되어 파일을 못 찾습니다.
 
@@ -154,6 +190,31 @@ tail -f exp/bsrnn_ecapa_FiLM/train.log
 
 > **첫 스텝에서 약 113초 멈춘 것처럼 보입니다.** `compile_model: true` 라
 > PyTorch 가 모델을 컴파일하는 시간입니다. 고장이 아닙니다.
+
+**정말 돌고 있는지 보려면** `TORCH_LOGS` 를 붙여 다시 띄웁니다.
+
+```bash
+TORCH_LOGS="dynamo" CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
+  --config confs/bsrnn_ecapa_FiLM.yaml \
+  --exp_dir exp/bsrnn_ecapa_FiLM \
+  --precision bf16-mixed \
+  --tracker both
+```
+
+환경변수라 `run.sh` → `torchrun` → `train.py` 까지 그대로 내려갑니다. `run.sh` 는 고칠 필요가 없습니다.
+
+| 값 | 무엇이 보이나 |
+|---|---|
+| `dynamo` | 추적 중인 함수가 계속 찍힘 — **멈춘 게 아니라는 확인** |
+| `recompiles` | 재컴파일 이유. 113초가 **여러 번** 나오면 이것부터 봅니다 |
+| `graph_breaks` | 그래프가 끊기는 지점. 컴파일이 느린 이유를 팔 때 |
+
+| 주의 | 내용 |
+|---|---|
+| `train.log` 에는 **안 남습니다** | torch 가 stderr 로 직접 뱉는데, `train.log` 는 파이썬 logging 파일 핸들러가 씁니다.<br>파일로 받으려면 `nohup ... > out.log 2>&1` 처럼 stderr 를 같이 받으세요 |
+| 계속 쏟아지지는 않습니다 | **콜드 컴파일 때만** 나옵니다(실측). 그 뒤 정상 스텝은 **0줄**이고, 입력 모양이 바뀌어 재컴파일될 때만 다시 몇 줄 나옵니다.<br>**본 학습 내내 켜 둬도 됩니다** — 오히려 재컴파일이 몇 번 나는지가 남습니다 |
+| 모든 rank 가 찍습니다 | GPU 여러 장으로 돌리면 같은 메시지가 장 수만큼 나옵니다 |
+| 진행률(%)은 안 나옵니다 | torch 가 총 컴파일 시간을 미리 모릅니다. 나오는 것은 **단계 메시지**뿐입니다 |
 
 #### 2-1-1. 중간에 끊겼다면
 
@@ -223,7 +284,7 @@ grep "Val info" exp/bsrnn_ecapa_FiLM/train.log | sort -t' ' -k7 -n | head -5
 
 두 모드는 **서로 다른 인자 하나씩만** 봅니다. 그래서 둘을 같이 줘도 겹치지 않습니다.
 
-`best` 에서 `--num_avg` 를 안 줘도 되는 이유는 [run.sh:128](run.sh#L128) 가
+`best` 에서 `--num_avg` 를 안 줘도 되는 이유는 [run.sh:162](run.sh#L162) 가
 `avg_epochs` 의 개수를 세어 자동으로 채우기 때문입니다 —
 `"138,141"` 이면 2, `"135,140,145"` 면 3. 두 값이 어긋나
 [average_model.py:83](../../../../wesep/bin/average_model.py#L83) 의 `assert` 에서 죽는 일을 막으려는 것입니다.
@@ -315,6 +376,9 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 6 \
 exp/bsrnn_ecapa_FiLM/
 ├── train.log                      학습 로그 — "Val info val_loss" 로 수렴 확인
 ├── config.yaml                    이 run 이 실제로 쓴 설정 (자동 저장)
+├── csv/version_N/metrics.csv      학습 곡선 — 아래 표 참조
+├── tb/version_N/                  텐서보드 tfevents (--tracker tensorboard·both)
+├── wandb/                         wandb 로컬 폴더 (--tracker both)
 ├── models/
 │   ├── checkpoint_<N>.pt          epoch 별 체크포인트 (마지막 20개 보존)
 │   ├── latest_checkpoint.pt  ->   가장 최근 것 (재개할 때 자동으로 읽음)
@@ -326,6 +390,25 @@ exp/bsrnn_ecapa_FiLM/
 **Table 2 에 쓸 숫자는 `infer_utt_scores.csv` 에 있습니다** — stage 6 의 `scoring/` 에는
 SI-SNRi 가 없어서, 이 파일이 유일한 출처입니다.
 
+### 학습 곡선 — `csv/version_N/metrics.csv`
+
+Lightning `CSVLogger` 형식입니다. 그 시점에 없는 지표는 빈 칸으로 둡니다.
+
+| 열 | 뜻 |
+|---|---|
+| `step` | **전역 스텝.** 에포크가 바뀌어도 안 돌아갑니다 |
+| `epoch` | 에포크 번호 |
+| `train/loss_step` · `train/lr_step` | `--tracker_step_interval` 스텝마다. **`step` 0 은 건너뜁니다** — 학습 전 손실이라 홀로 크게 튑니다 |
+| `train/loss_running_step` | 그 에포크 안의 누적 평균 |
+| `train/loss_epoch` · `train/lr_epoch` | 에포크 끝 (학습) |
+| `val/loss` | 에포크 끝 (검증) |
+
+**`version_N` 은 run 마다 하나씩 늘어납니다** — 중간에 끊겨 재개하면 `version_1` 이 새로
+생기고 이전 기록은 `version_0` 에 남습니다.
+
+> **소수점 끝자리까지 대조할 일에는 이 CSV 를 쓰십시오.**
+> 텐서보드의 스칼라는 float32 라 `50.018273162841794` 가 `50.018272399902344` 로 깎입니다.
+
 ---
 
 ## 자주 걸리는 것
@@ -334,7 +417,7 @@ SI-SNRi 가 없어서, 이 파일이 유일한 출처입니다.
 |---|---|
 | `import wesep` 가 안 됨 | **작업 디렉토리가 틀림.** `examples/librimix/tse/v2` 에서 `run.sh` 를 불러야 `path.sh` 가 `PYTHONPATH` 를 잡음 |
 | 로그의 GPU 번호가 항상 `0` | 정상임. `CUDA_VISIBLE_DEVICES=N` 을 주면 그 프로세스는 한 장만 보고 그것을 `0` 이라 부름 |
-| 첫 스텝에서 2분 멈춤 | `compile_model: true` 의 컴파일 시간(약 113초). run 당 한 번뿐임 |
+| 첫 스텝에서 2분 멈춤 | `compile_model: true` 의 컴파일 시간(약 113초). run 당 한 번뿐임.<br>정말 도는지 보려면 `TORCH_LOGS="dynamo"` 를 붙여 실행 — [2-1](#2-1-학습-stage-3) 절 |
 | 학습이 엉뚱한 가중치에서 시작 | **`exp_dir` 이 겹쳤음.** stage 3 은 그 폴더의 `latest_checkpoint.pt` 를 무조건 이어받음 |
 | 체크포인트 로드에서 에러 | `strict=True` 라 키가 안 맞으면 죽음. 예전에는 조용히 넘어가 **랜덤 초기화로 학습되는 사고**가 났었음 |
 | `--avg_epochs` 를 뭘 넣을지 모름 | `run.sh` 기본값은 `"138,141"` 임. **run 마다 `val_loss` 를 보고 다시 고를 것** |

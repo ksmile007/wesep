@@ -42,6 +42,8 @@ from wesep.utils.file_utils import (
     read_vec_scp_file,
 )
 from wesep.utils.losses import parse_loss
+# <<<<< 더한 것 - precision 하나로 autocast·GradScaler 를 결정
+from wesep.utils.precision import parse_precision
 from wesep.utils.utils import parse_config_or_kwargs, set_seed, setup_logger
 
 MAX_NUM_log_files = 100  # The maximum number of log-files to be kept
@@ -284,15 +286,28 @@ def train(config="conf/config.yaml", **kwargs):
     # <<<<< 고친 것 - torch.cuda.amp.* 가 FutureWarning 을 냄. torch.amp.* 로 옮김.
     #       두 API 는 같은 구현임 (torch.cuda.amp 쪽이 torch.amp 를 상속해 super() 를 부름).
     #       device_type 은 위에서 이미 정해 둔 device 를 그대로 씀 - cpu 로 돌려도 깨지지 않게
-    scaler = torch.amp.GradScaler(device.type, enabled=configs["enable_amp"])
+    # <<<<< 고친 것 - precision 하나가 autocast·dtype·GradScaler 를 다 정함.
+    #       bf16-mixed 는 지수부가 fp32 와 같아 scaler 가 필요 없으므로 꺼짐.
+    #       precision 이 없으면 옛 키 enable_amp 으로 떨어짐 - 원본 config 호환
+    enable_amp, amp_dtype, scaler_enabled = parse_precision(configs)
+    scaler = torch.amp.GradScaler(device.type, enabled=scaler_enabled)
 
     # If specify checkpoint, load some info from checkpoint.
     if checkpoint is not None:
-        load_checkpoint(model_list, optimizer_list, scheduler_list, scaler,
-                        checkpoint)
-        start_epoch = (
-            int(re.findall(r"(?<=checkpoint_)\d*(?=.pt)", checkpoint)[0]) + 1)
-        logger.info("Load checkpoint: {}".format(checkpoint))
+        # <<<<< 고친 것 - load_checkpoint 가 이제 학습 상태를 돌려줌.
+        #       그 키가 없는 옛 체크포인트는 None 이 나오므로 파일명 정규식으로 떨어짐
+        ckpt_info = load_checkpoint(model_list, optimizer_list, scheduler_list,
+                                    scaler, checkpoint)
+        if ckpt_info["epoch"] is not None:
+            start_epoch = ckpt_info["epoch"] + 1
+        else:
+            start_epoch = (
+                int(re.findall(r"(?<=checkpoint_)\d*(?=.pt)", checkpoint)[0]) + 1)
+        logger.info(f"Load checkpoint: {checkpoint} "
+                    f"(epoch={ckpt_info['epoch']} "
+                    f"global_step={ckpt_info['global_step']} "
+                    f"train_loss={ckpt_info['train_loss']} "
+                    f"val_loss={ckpt_info['val_loss']})")
     else:
         start_epoch = 1
     logger.info("start_epoch: {}".format(start_epoch))
@@ -313,7 +328,11 @@ def train(config="conf/config.yaml", **kwargs):
             logger.info(line)
     dist.barrier(device_ids=[gpu])  # synchronize here
 
-    executor = Executor()
+    # <<<<< 고친 것 - 기록은 전부 Executor 가 함.
+    #       tfevents·wandb 생성, CSV 준비, rank 판정까지 utils/tracker.py 의
+    #       Tracker 안에 있음. 스텝은 train() 이, 에포크는 train()·cv() 가
+    #       각자 자기 몫(train/* · val/*)을 씀
+    executor = Executor(configs, logger)
     executor.step = 0
 
     train_losses = []
@@ -332,7 +351,8 @@ def train(config="conf/config.yaml", **kwargs):
             scaler=scaler,
             epoch=epoch,
             logger=logger,
-            enable_amp=configs["enable_amp"],
+            enable_amp=enable_amp,
+            amp_dtype=amp_dtype,
             clip_grad=configs["clip_grad"],
             log_batch_interval=configs["log_batch_interval"],
             device=device,
@@ -351,7 +371,8 @@ def train(config="conf/config.yaml", **kwargs):
             criterion,
             epoch=epoch,
             logger=logger,
-            enable_amp=configs["enable_amp"],
+            enable_amp=enable_amp,
+            amp_dtype=amp_dtype,
             log_batch_interval=configs["log_batch_interval"],
             device=device,
         )
@@ -363,6 +384,7 @@ def train(config="conf/config.yaml", **kwargs):
                 epoch, val_loss))
             train_losses.append(train_loss)
             val_losses.append(val_loss)
+
 
             best_loss = val_loss
             scheduler.best = best_loss
@@ -404,6 +426,12 @@ def train(config="conf/config.yaml", **kwargs):
                     scheduler_list,
                     scaler,
                     os.path.join(model_dir, "checkpoint_{}.pt".format(epoch)),
+                    # <<<<< 더한 것 - 이 판이 어느 시점의 것인지를 파일 안에 남김.
+                    #       global_step 은 train() 이 executor 에 두고 간 값임
+                    epoch=epoch,
+                    global_step=executor._global_step,
+                    train_loss=train_loss,
+                    val_loss=val_loss,
                 )
                 try:
                     os.symlink(
@@ -423,6 +451,10 @@ def train(config="conf/config.yaml", **kwargs):
             os.path.join(model_dir, "final_checkpoint.pt"),
         )
         logger.info(tp.bottom(len(header), width=10, style="grid"))
+
+    # <<<<< 고친 것 - tfevents 를 닫고 wandb run 을 마감함.
+    #       CSV 는 쓸 때마다 닫으므로 여기서 할 일이 없음
+    executor.close()
 
 
 if __name__ == "__main__":

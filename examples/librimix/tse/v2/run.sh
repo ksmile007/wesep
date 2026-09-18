@@ -43,6 +43,37 @@ avg_mode=best
 avg_epochs="138,141"       # best 일 때만. 여기 적은 epoch 만 평균함
 num_avg=10                 # final 일 때만. 마지막 몇 개를 평균할지
 
+# 학습 곡선 기록 — exp_dir/tb 에 tfevents 를 씀
+#   none        : 안 함 (원본 동작)
+#   tensorboard : 로컬 파일만
+#   both        : 로컬 파일 + wandb 실시간 업로드
+# both 는 wandb 와 텐서보드를 각각 따로 씀 — TensorBoardLogger 가 tfevents 를 남김.
+# wandb 로그인은 ~/.netrc 에 저장되므로 conda 환경과 무관함
+tracker=both
+
+# 지표 CSV — exp_dir/csv/version_N/metrics.csv 에 씀 (Lightning CSVLogger 형식).
+# 스텝 기록과 에포크 기록이 한 파일에 섞여 들어가고, 그 시점에 없는 열은 빈 칸으로 남음.
+# tracker 설정과 **무관하게 항상** 기록함 (tracker=none 인 run 도 비교 대상이므로).
+# 기록할 때마다 save() 를 부르므로 도는 중에 tail -F 로 볼 수 있음.
+# 소문자 -f 가 아니라 **대문자 -F** 임 - metrics.csv 는 첫 기록 때 만들어지므로
+# 그 전에는 파일이 없어 -f 가 바로 죽음(Lightning CSVLogger 가 헤더를 정하려면 지표가 필요함)
+#   50 : 50 스텝마다 스텝 손실을 남김. 단 global_step 0 은 건너뜀 —
+#        학습 전 손실이라 홀로 크게 튀어 그래프 y축을 다 잡아먹었음
+#    0 : 스텝 기록을 끄고 에포크만 남김
+# 아래 log_batch_interval 과는 별개임 — 그것은 train.log 에 표를 찍는 주기임
+tracker_step_interval=50
+
+# 학습 정밀도 — Lightning 과 같은 이름. 이 하나가 autocast 와 GradScaler 를 다 정함.
+#   32-true     : fp32.      autocast 꺼짐, GradScaler 꺼짐
+#   16-mixed    : fp16 혼합.  autocast 켜짐, GradScaler **켜짐**
+#   bf16-mixed  : bf16 혼합.  autocast 켜짐, GradScaler 꺼짐 (지수부가 fp32 와 같아 불필요)
+# 이 값이 본 config 의 옛 키 enable_amp 을 **항상 덮어씀.**
+# 16-mixed 로 둔 것은 Table 2 의 bsrnn_ecapa_*.yaml 4개가 enable_amp: true 이기 때문임.
+# 다만 원본 wenet-e2e/wesep 의 config 11개는 전부 enable_amp: false(fp32) 이고,
+# 그 4개는 이 포크가 만든 것임 - 즉 fp16 은 원본 근거가 아니라 이 프로젝트의 선택임.
+# 다른 값으로 돌리려면 여기를 바꾸거나 --precision <값> 을 줄 것
+precision=16-mixed
+
 # Debug 관련 — 짧게 돌려 "도는가 · GPU 메모리가 되는가" 만 볼 때.
 # 아래 dev/ 경로들은 Libri2Mix 의 검증 분할이라 뜻이 다름. 헷갈리지 말 것
 debug=false                    # true 면 아래 debug_config 를 본 config 위에 덮어씀
@@ -105,6 +136,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --exp_dir ${exp_dir} \
     --gpus $gpus \
     --num_avg ${num_avg} \
+    --tracker ${tracker} \
+    --tracker_step_interval ${tracker_step_interval} \
+    --precision ${precision} \
     --data_type "${data_type}" \
     --train_data ${data}/train-100/${data_type}.list \
     --train_utt2spk ${data}/train-100/single.utt2spk \

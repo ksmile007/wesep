@@ -308,12 +308,29 @@ def Dataset(
     assert data_type in ["shard", "raw"]
     lists = read_lists(data_list_file)
     shuffle = configs.get("shuffle", False)
+
+    # <<<<< 더한 것 - torchaudio.load 가 wav 를 어떤 dtype 으로 낼지.
+    #       키가 없으면 float32 = 옛 경로 그대로. int16 이면 셔플 버퍼가 절반이 되고
+    #       shuffle 뒤의 cast_wav_float32 이 float32 로 되돌림
+    load_wav_dtype = configs.get("load_wav_dtype", "float32")
+    if load_wav_dtype not in ("float32", "int16"):
+        # yaml 에서 오는 값이라 assert 가 아니라 raise
+        raise ValueError(f"load_wav_dtype={load_wav_dtype!r} must be in "
+                         "('float32', 'int16')")
+    if load_wav_dtype == "int16" and (data_type != "shard" or online_mix
+                                      or configs.get("filter_len", False)):
+        # raw·online_mix 는 wav_dtype 을 받는 경로가 아니라 int16 이 조용히 무시되고,
+        # filter_len 은 shuffle 과 cast 사이에서 파형을 읽으므로 int16 을 받게 됨
+        raise ValueError("load_wav_dtype=int16 requires data_type='shard' "
+                         "and is not compatible with online_mix or filter_len")
+
     # Global shuffle
     dataset = DataList(lists, shuffle=shuffle, repeat_dataset=repeat_dataset)
     if data_type == "shard":
         dataset = Processor(dataset, processor.url_opener)
         if not online_mix:
-            dataset = Processor(dataset, processor.tar_file_and_group)
+            dataset = Processor(dataset, processor.tar_file_and_group,
+                                wav_dtype=load_wav_dtype)
         else:
             dataset = Processor(dataset,
                                 processor.tar_file_and_group_single_spk)
@@ -328,6 +345,10 @@ def Dataset(
     if shuffle and not online_mix:
         dataset = Processor(dataset, processor.shuffle,
                             **configs["shuffle_args"])
+    # <<<<< 더한 것 - 버퍼에서 나오는 자리에서 float32 로 되돌림. resample 보다 반드시 앞.
+    #       shuffle 이 꺼진 config 에서도 붙어야 하므로 위 if 블록 바깥에 둠
+    if load_wav_dtype == "int16":
+        dataset = Processor(dataset, processor.cast_wav_float32)
 
     # resample
     resample_rate = configs.get("resample_rate", 16000)

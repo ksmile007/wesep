@@ -2,13 +2,16 @@
 # 여기 적힌 키만 본 config 위에 덮어씀. 나머지는 본 config 그대로임.
 # 값 비교에는 쓸 수 없고 "도는가 · GPU 메모리가 되는가" 만 보는 용도임.
 
-num_epochs: 3            # 에포크 3번. train.py:303 의 루프 상한
+num_epochs: 3            # 에포크 3번. train.py:340 의 루프 상한
+
+compile_model: false     # 짧게 도는 모드라 컴파일 113초가 순수 낭비임.
+                         # 본 학습에서는 본 config 의 true 가 그대로 쓰임
 
 steps_per_epoch: 5       # 에포크당 스텝 5번.
                          # train.py 는 스텝 수를 직접 안 받고
-                         #   epoch_iter = sample_num_per_epoch // world_size // batch_size (train.py:201)
+                         #   epoch_iter = sample_num_per_epoch // world_size // batch_size (train.py:207)
                          # 로 계산하므로, local/make_debug_config.py 가 batch_size 를 곱해 넣어 줌.
-                         # 멈추는 곳은 executor.py:149-150 의 (i+1) == epoch_iter
+                         # 멈추는 곳은 executor.py:229-230 의 (i+1) == epoch_iter
 
 val_steps_per_epoch: 5   # 검증도 5스텝만.
                          # 원본 train.py 는 val_iter 를 val_lines // 2 로 못 박아 둬서
@@ -16,21 +19,22 @@ val_steps_per_epoch: 5   # 검증도 5스텝만.
                          # val_sample_num_per_epoch 키를 새로 두고 그것을 읽게 고침
 
 log_batch_interval: 1    # 스텝마다 TRAIN 줄을 찍음.
-                         # 기본값 100 이면 스텝이 5개뿐이라 executor.py:136 의
+                         # 기본값 100 이면 스텝이 5개뿐이라 executor.py:216 의
                          # (i+1) % log_interval == 0 에 한 번도 안 걸려 학습 손실이 안 보임
 
 dataset_args:
   shuffle_args:
     shuffle_size: 50     # 지역 셔플 버퍼. 기본 2500 이면 첫 배치까지 84초 걸림(실측).
-                         # processor.py:345-352 가 이만큼 모은 뒤에야 내보내기 때문이고,
+                         # processor.py:373-376 이 이만큼 모은 뒤에야 내보내기 때문이고,
                          # 한 샘플에 111 ms 가 드는데 그 71 %가 등록 발화 fbank 임.
-                         # dataset_args 는 train.py:174 가 검증에도 그대로 넘기므로 양쪽에 같이 적용됨.
+                         # dataset_args 는 train.py:180 이 검증에도 그대로 넘기므로 양쪽에 같이 적용됨.
                          # 본 학습에서는 낮추면 안 됨 — 배치 구성이 달라져 논문 조건과 어긋남
 #   slow_sec: 1          # 막대가 도는지 눈으로 보려고 샘플마다 1초 쉼.
                          # 주석을 풀면 버퍼 채우기가 shuffle_size 초만큼 걸림. 확인용으로만 쓸 것
 
-# GPU 메모리가 모자라면 아래 두 줄의 주석을 풀어 배치를 낮춤.
-# batch_size 는 "혼합 개수" 이고, tse_collate_fn(dataset.py:218-224) 이
+# GPU 메모리 대비 — batch_size 는 "혼합 개수" 이고, tse_collate_fn(dataset.py:217-225) 이
 # 혼합 하나를 화자 2명 각각의 타깃으로 복제하므로 모델이 보는 배치는 그 2배임.
-# dataloader_args:
-#   batch_size: 4
+# 본 config 의 8 은 V100(32GB) 기준이라(bsrnn.yaml:2) RTX 3090(24GB) 에서는 OOM 임 - 실측.
+# 본 학습에서는 본 config 의 8 이 그대로 쓰임
+dataloader_args:
+  batch_size: 2

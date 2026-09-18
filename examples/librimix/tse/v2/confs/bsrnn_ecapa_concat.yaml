@@ -11,6 +11,8 @@ dataset_args:
   shuffle: true
   shuffle_args:
     shuffle_size: 2500
+  load_wav_dtype: int16  # <<<<< 더한 것 - 셔플 버퍼에만 int16 으로 담아 CPU 메모리를 절반으로.
+                         #       배치는 cast_wav_float32 가 float32 로 되돌림
   chunk_len: 48000
   speaker_feat: &speaker_feat True
   fbank_args:
@@ -29,6 +31,7 @@ dataset_args:
   SSA_enroll_prob: 0   # prob to add SSA on enrollment speech
 
 enable_amp: true  # false
+precision: 16-mixed  # <<<<< 더한 것 - 이 키가 있으면 위 enable_amp 은 무시됨 (wesep/utils/precision.py)
 # model.compile() 로 학습 스텝을 감쌈. 150 에포크에 약 4.6시간 줄어듦(실측).
 # 컴파일은 run 당 1회 113초. 추론(infer.py)에는 걸지 않음.
 # 근거는 notebooks/bsrnn_compile_axes_yaml.ipynb
