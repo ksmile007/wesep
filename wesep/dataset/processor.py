@@ -63,16 +63,19 @@ def url_opener(data):
             logging.warning("Failed to open {}".format(url))
 
 
-def tar_file_and_group(data):
+def tar_file_and_group(data, wav_dtype="float32"):
     """Expand a stream of open tar files into a stream of tar file contents.
     And groups the file with same prefix
 
     Args:
         data: Iterable[{src, stream}]
+        wav_dtype: "float32"(옛 경로) 또는 "int16"(셔플 버퍼를 절반으로 쓰기 위해).
+            int16 이면 cast_wav_float32 이 shuffle 뒤에서 float32 로 되돌림
 
     Returns:
         Iterable[{key, mix_wav, spk1_wav, spk2_wav, ..., sample_rate}]
     """
+    normalize = (wav_dtype != "int16")
     for sample in data:
         assert "stream" in sample
         stream = tarfile.open(fileobj=sample["stream"], mode="r:*")
@@ -108,7 +111,11 @@ def tar_file_and_group(data):
                                 file_obj.read().decode("utf8").strip())
                             num_speakers += 1
                         elif postfix in AUDIO_FORMAT_SETS:
-                            waveform, sample_rate = torchaudio.load(file_obj)
+                            # <<<<< 더한 것 - int16 으로 담으면 셔플 버퍼가 절반이 됨.
+                            #       float32 되돌리기는 shuffle 직후의
+                            #       cast_wav_float32 이 맡음
+                            waveform, sample_rate = torchaudio.load(file_obj,
+                                                                    normalize=normalize)
                             if prefix[-5:-1] == "_spk":
                                 example["wav" + prefix[-5:]] = waveform
                                 prefix = prefix[:-5]
@@ -371,13 +378,55 @@ def shuffle(data, shuffle_size=2500, slow_sec=0):
                 bar.close()
                 bar = None
             random.shuffle(buf)
-            for x in buf:
+            # <<<<< 더한 것 - 소진한 칸을 놓아 줌. 안 놓으면 random_chunk·compute_fbank 가
+            #       같은 dict 에 제자리로 채워 넣어 샘플당 약 1.36 MiB 가 다시 쌓임(실측)
+            for i, x in enumerate(buf):
+                buf[i] = None
                 yield x
             buf = []
     # The sample left over
     random.shuffle(buf)
-    for x in buf:
+    for i, x in enumerate(buf):
+        buf[i] = None
         yield x
+
+
+# <<<<< 더한 것 - shuffle 버퍼에 int16 으로 담은 파형을 float32 로 되돌림.
+#       resample 보다 반드시 앞에 와야 함.
+#       torchaudio 는 이 나눗셈을 파이썬이 아니라 C(ffmpeg·libsndfile)에서 하므로
+#       베껴 올 줄이 없음. int16 값 65,536개 전수 대조로 확정했고 최대 절대오차는
+#       0.0 이었음(torchaudio 2.7.1+cu128). 판이나 백엔드를 올리면 다시 대조할 것
+MAX_INT16 = 1 << 15  # = 32768 = 2 ** 15 = -torch.iinfo(torch.int16).min
+# 확인한 식 (실행 코드 아님):
+#   torch.equal(load(f, normalize=True),
+#               load(f, normalize=False).to(torch.float32) / MAX_INT16) -> True
+
+
+def cast_wav_float32(data):
+    """int16 파형을 float32 로 되돌림.
+
+    MAX_INT16 은 int16 의 최대값(32767)이 아니라 최소값의 절댓값이라
+    되돌린 범위가 -1.0 ~ 32767/32768 = 0.999969482421875 로 비대칭임.
+
+    Args:
+        data: Iterable[{key, wav_mix, wav_spk1, ...}]
+
+    Returns:
+        Iterable[{key, wav_mix, wav_spk1, ...}]  (wav_* 만 float32 로 바뀜)
+    """
+    for sample in data:
+        for key in list(sample.keys()):
+            if "wav" not in key or not torch.is_tensor(sample[key]):
+                continue
+            wav = sample[key]
+            if wav.dtype == torch.int16:
+                sample[key] = wav.to(torch.float32) / MAX_INT16  # float32 and norm
+            elif not wav.is_floating_point():
+                # 24·32비트 PCM 은 int32 로 나옴 - 조용히 틀리지 않게 멈춤
+                raise ValueError(
+                    f"{key} 의 dtype 이 {wav.dtype} 임. "
+                    "load_wav_dtype=int16 은 16-bit PCM 데이터에만 쓸 수 있음")
+        yield sample
 
 
 def spk_to_id(data, spk2id):

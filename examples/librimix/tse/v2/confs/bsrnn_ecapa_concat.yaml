@@ -11,6 +11,8 @@ dataset_args:
   shuffle: true
   shuffle_args:
     shuffle_size: 2500
+  load_wav_dtype: int16  # <<<<< 더한 것 - 셔플 버퍼에만 int16 으로 담아 CPU 메모리를 절반으로.
+                         #       배치는 cast_wav_float32 가 float32 로 되돌림
   chunk_len: 48000
   speaker_feat: &speaker_feat True
   fbank_args:
