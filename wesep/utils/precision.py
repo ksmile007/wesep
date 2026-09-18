@@ -16,7 +16,9 @@ lightning/pytorch/plugins/precision/amp.py:55-56 의
 `"bf16-mixed" does not use a scaler` MisconfigurationException.
 
 **옛 키 `enable_amp` 은 precision 이 없을 때만 봄.** wesep 원본 config 11개가
-그 키를 쓰므로, 그것들을 안 고쳐도 지금까지와 똑같이 돌게 하려는 것임.
+그 키를 쓰므로, 그것들을 안 고쳐도 돌게 하려는 것임.
+다만 examples/librimix/tse/v2/run.sh 는 --precision 을 **항상** 넘기므로,
+그 폴백이 실제로 쓰이는 곳은 v1/run.sh 와 train.py 직접 호출뿐임.
 
     precision 있음         precision 대로 (enable_amp 은 무시)
     없음 + enable_amp false  32-true

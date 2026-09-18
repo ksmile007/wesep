@@ -54,7 +54,7 @@ def main():
                     choices=["none", "tensorboard", "both"])
     ap.add_argument("--benchmark", default="true")
     ap.add_argument("--deterministic", default="false",
-                    help="wesep/utils/utils.py:111 에 주석 처리된 "
+                    help="wesep/utils/utils.py:115 에 주석 처리된 "
                          "torch.backends.cudnn.deterministic 을 켜 봄")
     ap.add_argument("--strict_det", default="false",
                     help="torch.use_deterministic_algorithms(True, warn_only=True). "
@@ -70,7 +70,7 @@ def main():
     configs = yaml.safe_load(open(a.config))
 
     # train.py:88 과 같은 자리. set_seed 안에서 cudnn.benchmark = True 가 켜지므로
-    # (wesep/utils/utils.py:112) 그 뒤에 덮어써야 함
+    # (wesep/utils/utils.py:116) 그 뒤에 덮어써야 함
     set_seed(configs["seed"])
     torch.backends.cudnn.benchmark = as_bool(a.benchmark)
     torch.backends.cudnn.deterministic = as_bool(a.deterministic)

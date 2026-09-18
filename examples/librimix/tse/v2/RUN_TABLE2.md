@@ -156,9 +156,9 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
 | `--config` | fusion 을 정하는 파일 |
 | `--exp_dir` | 체크포인트와 로그가 쌓이는 곳. **fusion 마다 달라야 함** |
 | `--debug true` | **짧게 시험할 때만.** 3 epoch × 5 스텝만 돌고 결과 폴더가 `_debug` 로 갈림.<br>상세는 [짧게 시험해 보기](#짧게-시험해-보기--debug-모드) 절 |
-| `--precision` | 학습 정밀도. `32-true` · `16-mixed` · `bf16-mixed`.<br>기본값은 [run.sh:70](run.sh#L70) 의 `16-mixed`. 이 값이 config 의 `enable_amp` 을 **항상 덮어씀** |
+| `--precision` | 학습 정밀도. `32-true` · `16-mixed` · `bf16-mixed`.<br>기본값은 [run.sh:73](run.sh#L73) 의 `16-mixed`. 이 값이 config 의 `enable_amp` 을 **항상 덮어씀** |
 | `--tracker` | 학습 곡선 기록. `none` · `tensorboard` · `both`.<br>기본값은 [run.sh:52](run.sh#L52) 의 `both` |
-| `--tracker_step_interval` | 몇 스텝마다 기록할지. 기본 50, `0` 이면 에포크만.<br>[run.sh:60](run.sh#L60) |
+| `--tracker_step_interval` | 몇 스텝마다 기록할지. 기본 50, `0` 이면 에포크만.<br>[run.sh:62](run.sh#L62) |
 
 **본 학습 전에 `--debug true` 로 한 번 돌려 볼 것.**
 40시간짜리를 띄워 놓고 3시간 뒤에 GPU 메모리 부족으로 죽은 것을 발견하는 일을 막아 줍니다.
@@ -172,13 +172,13 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
 
 `--debug true` 는 [confs/debug.yaml](confs/debug.yaml) 을 본 config 위에 덮어씁니다
 (`num_epochs: 3` · `steps_per_epoch: 5` · `compile_model: false` 등).
-**본 config 파일 자체는 바뀌지 않습니다** — [run.sh:76](run.sh#L76) 이 합친 임시 파일을
+**본 config 파일 자체는 바뀌지 않습니다** — [run.sh:89](run.sh#L89) 이 합친 임시 파일을
 `exp_dir/config_debug.yaml` 로 따로 만들어 그것을 씁니다.
 
 > SD-FiLM 저장소의 `--config-name=dev` 와 **이름이 다릅니다.**
 > 그쪽은 Hydra 이고 여기는 bash 인자입니다. wesep 에서는 `--debug true` 뿐입니다.
 
-`--data` 는 주지 않습니다 — [run.sh:74](run.sh#L74) 이 기본값 `data` 에
+`--data` 는 주지 않습니다 — [run.sh:103](run.sh#L103) 가 기본값 `data` 에
 `noise_type`(`clean`)을 붙여 `data/clean` 을 만듭니다.
 `--data data/clean` 을 주면 `data/clean/clean` 이 되어 파일을 못 찾습니다.
 
@@ -212,7 +212,7 @@ TORCH_LOGS="dynamo" CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 
 | 주의 | 내용 |
 |---|---|
 | `train.log` 에는 **안 남습니다** | torch 가 stderr 로 직접 뱉는데, `train.log` 는 파이썬 logging 파일 핸들러가 씁니다.<br>파일로 받으려면 `nohup ... > out.log 2>&1` 처럼 stderr 를 같이 받으세요 |
-| 양이 많습니다 | `dynamo` 는 수천 줄입니다. **확인할 때만 켜고 평소에는 빼세요** |
+| 계속 쏟아지지는 않습니다 | **콜드 컴파일 때만** 나옵니다(실측). 그 뒤 정상 스텝은 **0줄**이고, 입력 모양이 바뀌어 재컴파일될 때만 다시 몇 줄 나옵니다.<br>**본 학습 내내 켜 둬도 됩니다** — 오히려 재컴파일이 몇 번 나는지가 남습니다 |
 | 모든 rank 가 찍습니다 | GPU 여러 장으로 돌리면 같은 메시지가 장 수만큼 나옵니다 |
 | 진행률(%)은 안 나옵니다 | torch 가 총 컴파일 시간을 미리 모릅니다. 나오는 것은 **단계 메시지**뿐입니다 |
 
@@ -284,7 +284,7 @@ grep "Val info" exp/bsrnn_ecapa_FiLM/train.log | sort -t' ' -k7 -n | head -5
 
 두 모드는 **서로 다른 인자 하나씩만** 봅니다. 그래서 둘을 같이 줘도 겹치지 않습니다.
 
-`best` 에서 `--num_avg` 를 안 줘도 되는 이유는 [run.sh:128](run.sh#L128) 가
+`best` 에서 `--num_avg` 를 안 줘도 되는 이유는 [run.sh:160](run.sh#L160) 가
 `avg_epochs` 의 개수를 세어 자동으로 채우기 때문입니다 —
 `"138,141"` 이면 2, `"135,140,145"` 면 3. 두 값이 어긋나
 [average_model.py:83](../../../../wesep/bin/average_model.py#L83) 의 `assert` 에서 죽는 일을 막으려는 것입니다.
@@ -398,7 +398,7 @@ Lightning `CSVLogger` 형식입니다. 그 시점에 없는 지표는 빈 칸으
 |---|---|
 | `step` | **전역 스텝.** 에포크가 바뀌어도 안 돌아갑니다 |
 | `epoch` | 에포크 번호 |
-| `train/loss_step` · `train/lr_step` | `--tracker_step_interval` 스텝마다 |
+| `train/loss_step` · `train/lr_step` | `--tracker_step_interval` 스텝마다. **`step` 0 은 건너뜁니다** — 학습 전 손실이라 홀로 크게 튑니다 |
 | `train/loss_running_step` | 그 에포크 안의 누적 평균 |
 | `train/loss_epoch` · `train/lr_epoch` | 에포크 끝 (학습) |
 | `val/loss` | 에포크 끝 (검증) |

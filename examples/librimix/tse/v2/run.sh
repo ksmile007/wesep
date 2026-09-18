@@ -51,7 +51,8 @@ num_avg=10                 # final 일 때만. 마지막 몇 개를 평균할지
 # wandb 로그인은 ~/.netrc 에 저장되므로 conda 환경과 무관함
 tracker=both
 
-# 지표 CSV — exp_dir 에 metrics_step.csv · metrics_epoch.csv 를 씀.
+# 지표 CSV — exp_dir/csv/version_N/metrics.csv 에 씀 (Lightning CSVLogger 형식).
+# 스텝 기록과 에포크 기록이 한 파일에 섞여 들어가고, 그 시점에 없는 열은 빈 칸으로 남음.
 # tracker 설정과 **무관하게 항상** 기록함 (tracker=none 인 run 도 비교 대상이므로).
 # 기록할 때마다 save() 를 부르므로 도는 중에 tail -F 로 볼 수 있음.
 # 소문자 -f 가 아니라 **대문자 -F** 임 - metrics.csv 는 첫 기록 때 만들어지므로
@@ -67,9 +68,10 @@ tracker_step_interval=50
 #   16-mixed    : fp16 혼합.  autocast 켜짐, GradScaler **켜짐**
 #   bf16-mixed  : bf16 혼합.  autocast 켜짐, GradScaler 꺼짐 (지수부가 fp32 와 같아 불필요)
 # 이 값이 본 config 의 옛 키 enable_amp 을 **항상 덮어씀.**
-# 그래서 16-mixed 로 둠 - Table 2 의 bsrnn_ecapa_*.yaml 4개가 enable_amp: true 라
-# 기존 run 과 같은 fp16 으로 유지됨. enable_amp: false 인 config 를 그 뜻대로 돌리려면
-# 여기를 32-true 로 바꾸거나 --precision 32-true 를 줄 것
+# 16-mixed 로 둔 것은 Table 2 의 bsrnn_ecapa_*.yaml 4개가 enable_amp: true 이기 때문임.
+# 다만 원본 wenet-e2e/wesep 의 config 11개는 전부 enable_amp: false(fp32) 이고,
+# 그 4개는 이 포크가 만든 것임 - 즉 fp16 은 원본 근거가 아니라 이 프로젝트의 선택임.
+# 다른 값으로 돌리려면 여기를 바꾸거나 --precision <값> 을 줄 것
 precision=16-mixed
 
 # Debug 관련 — 짧게 돌려 "도는가 · GPU 메모리가 되는가" 만 볼 때.

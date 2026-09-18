@@ -81,7 +81,7 @@ def main():
     seed = a.seed if a.seed is not None else configs["seed"]
 
     # train.py:88 과 같은 자리. set_seed 안에서 cudnn.benchmark = True 가
-    # 켜지므로(wesep/utils/utils.py:112) 요인 설정은 그 뒤에 와야 함
+    # 켜지므로(wesep/utils/utils.py:116) 요인 설정은 그 뒤에 와야 함
     set_seed(seed)
     torch.backends.cudnn.enabled = as_bool(a.cudnn_enabled)
     torch.backends.cudnn.benchmark = as_bool(a.benchmark)
