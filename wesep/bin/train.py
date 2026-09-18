@@ -294,11 +294,20 @@ def train(config="conf/config.yaml", **kwargs):
 
     # If specify checkpoint, load some info from checkpoint.
     if checkpoint is not None:
-        load_checkpoint(model_list, optimizer_list, scheduler_list, scaler,
-                        checkpoint)
-        start_epoch = (
-            int(re.findall(r"(?<=checkpoint_)\d*(?=.pt)", checkpoint)[0]) + 1)
-        logger.info("Load checkpoint: {}".format(checkpoint))
+        # <<<<< 고친 것 - load_checkpoint 가 이제 학습 상태를 돌려줌.
+        #       그 키가 없는 옛 체크포인트는 None 이 나오므로 파일명 정규식으로 떨어짐
+        ckpt_info = load_checkpoint(model_list, optimizer_list, scheduler_list,
+                                    scaler, checkpoint)
+        if ckpt_info["epoch"] is not None:
+            start_epoch = ckpt_info["epoch"] + 1
+        else:
+            start_epoch = (
+                int(re.findall(r"(?<=checkpoint_)\d*(?=.pt)", checkpoint)[0]) + 1)
+        logger.info(f"Load checkpoint: {checkpoint} "
+                    f"(epoch={ckpt_info['epoch']} "
+                    f"global_step={ckpt_info['global_step']} "
+                    f"train_loss={ckpt_info['train_loss']} "
+                    f"val_loss={ckpt_info['val_loss']})")
     else:
         start_epoch = 1
     logger.info("start_epoch: {}".format(start_epoch))
@@ -417,6 +426,12 @@ def train(config="conf/config.yaml", **kwargs):
                     scheduler_list,
                     scaler,
                     os.path.join(model_dir, "checkpoint_{}.pt".format(epoch)),
+                    # <<<<< 더한 것 - 이 판이 어느 시점의 것인지를 파일 안에 남김.
+                    #       global_step 은 train() 이 executor 에 두고 간 값임
+                    epoch=epoch,
+                    global_step=executor._global_step,
+                    train_loss=train_loss,
+                    val_loss=val_loss,
                 )
                 try:
                     os.symlink(
