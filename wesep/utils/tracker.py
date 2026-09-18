@@ -91,21 +91,33 @@ class Tracker:
             # run.sh --tracker 가 넘긴 값임. 오타면 조용히 다른 로거가 켜지므로 멈춤
             raise ValueError(f"tracker={self.tracker!r} 는 없는 값임. {self.TRACKER_LIST} 중 하나여야 함")
 
+        # <<<<< 더한 것 - Lightning 로거는 .experiment 를 처음 건드릴 때 실제 자원을 만듦.
+        #       그냥 두면 첫 log_metrics(= global_step 50)까지 미뤄져
+        #       컴파일 113초 동안 wandb 에 run 이 안 보이고 exp_dir 도 비어 있었음(실측).
+        #       여기서 한 번 깨우면 wandb.init()·tfevents·CSV 폴더가 다 지금 생김
+        for lg in self.loggers:
+            _ = lg.experiment
+
         names = " ".join(type(lg).__name__ for lg in self.loggers)
         logger.info(
             f"tracker={self.tracker} step_interval={self.step_interval} -> {self.exp_dir} ({names})"
         )
 
     def log_step(self, row):
-        """global_step 이 step_interval 의 배수일 때만 씀.
+        """global_step 이 step_interval 의 배수일 때만 씀. 단 global_step 0 은 건너뜀.
 
         호출부는 매 스텝 그냥 부르면 됨.
         에포크 안 번호가 아니라 전역 스텝으로 재는 것은 Lightning 과 같음 —
         epoch_iter 가 step_interval 의 배수가 아니어도 x축 간격이 균일해짐.
+
+        **global_step 0 을 빼는 이유** — 그 점은 optimizer.step() 이 한 번도 불리기 전,
+        즉 초기 가중치의 손실이라 값이 홀로 크게 튐(실측: 29.54 vs 그 뒤 -9.6~0.26).
+        한 run 에 딱 한 점인데 그래프 y축의 76 % 를 차지해 나머지가 안 보였음.
+        Lightning 은 optimizer.step() 뒤에 global_step 을 올려 이 점이 아예 안 생김.
         """
         if self.enabled:
             global_step = row["global_step"]
-            if (self.step_interval and global_step % self.step_interval == 0):
+            if (self.step_interval and global_step > 0 and global_step % self.step_interval == 0):
                 self._log(row)
 
     def log_epoch(self, row):
@@ -124,7 +136,7 @@ class Tracker:
         global_step = row["global_step"]
         for lg in self.loggers:
             lg.log_metrics(metrics, step=global_step)
-            lg.save()      # CSVLogger 는 save() 해야 디스크에 감 - tail -f 용
+            lg.save()      # CSVLogger 는 save() 해야 디스크에 감 - tail -F 용
 
     def close(self):
         """CSV 를 비우고 wandb run 을 마감함."""

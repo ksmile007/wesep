@@ -53,8 +53,11 @@ tracker=both
 
 # 지표 CSV — exp_dir 에 metrics_step.csv · metrics_epoch.csv 를 씀.
 # tracker 설정과 **무관하게 항상** 기록함 (tracker=none 인 run 도 비교 대상이므로).
-# 한 줄 쓸 때마다 flush+fsync 하므로 도는 중에 tail -f 로 볼 수 있음.
-#   50 : 50 스텝마다 스텝 손실을 남김
+# 기록할 때마다 save() 를 부르므로 도는 중에 tail -F 로 볼 수 있음.
+# 소문자 -f 가 아니라 **대문자 -F** 임 - metrics.csv 는 첫 기록 때 만들어지므로
+# 그 전에는 파일이 없어 -f 가 바로 죽음(Lightning CSVLogger 가 헤더를 정하려면 지표가 필요함)
+#   50 : 50 스텝마다 스텝 손실을 남김. 단 global_step 0 은 건너뜀 —
+#        학습 전 손실이라 홀로 크게 튀어 그래프 y축을 다 잡아먹었음
 #    0 : 스텝 기록을 끄고 에포크만 남김
 # 아래 log_batch_interval 과는 별개임 — 그것은 train.log 에 표를 찍는 주기임
 tracker_step_interval=50
