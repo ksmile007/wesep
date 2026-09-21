@@ -174,6 +174,7 @@ class BSRNN(nn.Module):
         spk_model=None,
         spk_model_init=None,
         spk_model_freeze=False,
+        spk_model_eval=False,   # <<<<< 더한 것 - 동결 화자 인코더를 학습 중에도 eval 로 둘지 (#85)
         spk_args=None,
         spk_feat=False,
         feat_type="consistent",
@@ -192,6 +193,7 @@ class BSRNN(nn.Module):
         self.spk_feat = spk_feat
         self.feat_type = feat_type
         self.spk_model_freeze = spk_model_freeze
+        self.spk_model_eval = spk_model_eval   # <<<<< 더한 것 (#85)
         self.multi_task = multi_task
 
         # 0-1k (100 hop), 1k-4k (250 hop),
@@ -285,6 +287,26 @@ class BSRNN(nn.Module):
                     nn.Tanh(),
                     nn.Conv1d(self.feature_dim * 4, self.band_width[i] * 4, 1),
                 ))
+
+    # <<<<< 더한 것 - 화자 인코더를 학습 중에도 eval 로 둠 (#85).
+    #       spk_model_freeze 와는 다른 축임 - 그쪽은 requires_grad(gradient)를 끄고
+    #       이쪽은 BatchNorm·Dropout 의 모드를 끈다. requires_grad=False 만으로는
+    #       BN 의 running_mean/var 가 안 멈춘다(파라미터가 아니라 버퍼라서) -
+    #       학습 완료 ckpt 대조에서 BN 통계 58개가 전부 움직였음.
+    #       두 플래그를 엮지 않는 이유 - 가중치는 학습하되 BN 만 고정하는 것도
+    #       쓰이는 기법이고(Frozen BatchNorm), 엮으면 그 조합이 조용히 무시된다.
+    #
+    #       __init__ 이 아니라 여기인 이유 - nn.Module.train() 이 자식 전부를 재귀로
+    #       train 모드로 되돌린다. executor.py 의 model.train() 이 매 에포크 부르므로
+    #       __init__ 에서 한 번 꺼 두면 첫 에포크에 되살아남(실측).
+    #       joint_training 은 존재 확인용임 - 그 분기 안에서만 self.spk_model 이 만들어짐.
+    #       기본값이 False 라 기존 run 은 동작이 그대로임 - #72 Table 2 재현 경로 보존.
+    #       근거는 SD-FiLM 저장소의 docs/issues/wesep_frozen_encoder_bn_drift.md
+    def train(self, mode: bool = True):
+        super().train(mode)
+        if self.spk_model_eval and self.joint_training:
+            self.spk_model.eval()
+        return self
 
     def pad_input(self, input, window, stride):
         """

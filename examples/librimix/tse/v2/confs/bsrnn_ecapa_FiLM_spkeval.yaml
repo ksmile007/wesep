@@ -1,0 +1,141 @@
+# >>>>> bsrnn_ecapa_FiLM.yaml 을 복사해 키 하나만 바꾼 판 (#85)
+#
+#       표기 두 가지가 섞여 있으니 갈라 읽을 것:
+#         <<<<<  포크가 상류 wesep 에 더한 것.  원본 bsrnn_ecapa_FiLM.yaml 에도 똑같이 있음
+#         >>>>>  이 파일이 그 원본에서 더 나간 곳. 여기서만 보이는 표시
+#
+#       >>>>> 는 딱 두 곳임 - 이 머리말과 spk_model_eval: True 한 줄.
+#       나머지 약 100줄은 원본과 한 글자도 안 다름(diff 로 확인).
+#       그 한 줄이 화자 인코더의 BatchNorm running stats 를 얼려 "동결" 을 참으로 만듦.
+#
+#       exp_dir 은 exp/bsrnn_ecapa_FiLM-16-spkeval 처럼 -spkeval 을 붙여 기존 run 을 덮지 말 것
+#       (run.sh 가 --exp_dir 를 CLI 로 넘겨 yaml 값을 덮고, stage 3 은 그 폴더의
+#        latest_checkpoint.pt 를 무조건 이어받음).
+#       근거는 SD-FiLM 저장소의 docs/issues/wesep_frozen_encoder_bn_drift.md
+
+dataloader_args:
+  batch_size: 8 #RTX2080 1, V100: 8, A800: 16
+  drop_last: true
+  num_workers: 6
+  pin_memory: true
+  prefetch_factor: 6
+
+dataset_args:
+  resample_rate: &sr 16000
+  sample_num_per_epoch: 0
+  shuffle: true
+  shuffle_args:
+    shuffle_size: 2500
+  load_wav_dtype: int16  # <<<<< 더한 것 - 셔플 버퍼에만 int16 으로 담아 CPU 메모리를 절반으로.
+                         #       배치는 cast_wav_float32 가 float32 로 되돌림
+  chunk_len: 48000
+  speaker_feat: &speaker_feat True
+  fbank_args:
+    num_mel_bins: 80
+    frame_shift: 10
+    frame_length: 25
+    dither: 1.0
+  noise_lmdb_file: './data/musan/lmdb'
+  noise_prob: 0 # prob to add noise aug per sample
+  specaug_enroll_prob: 0 # prob to apply SpecAug on fbank of enrollment speech
+  reverb_enroll_prob: 0 # prob to add reverb aug on enrollment speech
+  noise_enroll_prob: 0 # prob to add noise aug on enrollment speech
+  # Self-estimated Speech Augmentation (SSA). Please ref our SLT paper: https://www.arxiv.org/abs/2409.09589
+  # only Single-optimization method is supported here.
+  # if you want to use multi-optimization, please ref bsrnn_multi_optim.yaml
+  SSA_enroll_prob: 0   # prob to add SSA on enrollment speech
+
+enable_amp: true  # false
+precision: 16-mixed  # <<<<< 더한 것 - 이 키가 있으면 위 enable_amp 은 무시됨 (wesep/utils/precision.py)
+# model.compile() 로 학습 스텝을 감쌈. 150 에포크에 약 4.6시간 줄어듦(실측).
+# 컴파일은 run 당 1회 113초. 추론(infer.py)에는 걸지 않음.
+# 근거는 notebooks/bsrnn_compile_axes_yaml.ipynb
+compile_model: true
+exp_dir: exp/BSRNN
+gpus: '0'
+log_batch_interval: 100
+
+loss: SISDR
+loss_args: {}
+
+# loss: [SISDR, CE]               ### For joint training the speaker encoder with CE loss. Put SISDR in the first position for validation set
+# loss_args:
+#   loss_posi: [[0],[1]]
+#   loss_weight: [[1.0],[1.0]]
+
+model:
+  tse_model: BSRNN
+model_args:
+  tse_model:
+    sr: *sr
+    win: 512
+    stride: 128
+    feature_dim: 128
+    num_repeat: 6
+    spk_fuse_type: 'FiLM'
+    use_spk_transform: False
+    multi_fuse: False        # Fuse the speaker embedding multiple times.
+    joint_training: True  # Always set True, use "spk_model_freeze" to control if use pre-trained speaker encoders
+    ####### ResNet    The pretrained speaker encoders are available from: https://github.com/wenet-e2e/wespeaker/blob/master/docs/pretrained.md
+    spk_model: ECAPA_TDNN_GLOB_c512     # ECAPA_TDNN_c512/c1024, ECAPA_TDNN_GLOB_c512/c1024
+    spk_model_init: ./wespeaker_models/voxceleb_ECAPA512/avg_model.pt # stage 1 이 wespeaker_models/ 로 받아 둠
+    spk_args:
+      feat_dim: 80
+      embed_dim: &embed_dim 192
+      pooling_func: "ASTP" # TSTP, ASTP, MQMHASTP
+    ####### Ecapa_TDNN
+    # spk_model: ECAPA_TDNN_GLOB_c512
+    # spk_model_init: False #./wespeaker_models/voxceleb_ECAPA512/avg_model.pt
+    # spk_args:
+    #   embed_dim: &embed_dim 192
+    #   feat_dim: 80
+    #   pooling_func: ASTP
+    ####### CAMPPlus
+    # spk_model: CAMPPlus
+    # spk_model_init: False
+    # spk_args:
+    #   feat_dim: 80
+    #   embed_dim: &embed_dim 192
+    #   pooling_func: "TSTP" # TSTP, ASTP, MQMHASTP
+    #################################################################
+    spk_emb_dim: *embed_dim
+    spk_model_freeze: True     # Related to train TSE model with pre-trained speaker encoder, Control if freeze the weights in speaker encoder
+    spk_model_eval: True       # >>>>> 동결 인코더를 학습 중에도 eval 로 둬 BatchNorm 통계까지 얼림 (#85).
+                               #       기본값 False 인 bsrnn_ecapa_FiLM.yaml 로 돈 exp/ 4 run 과는
+                               #       조건이 갈려 같은 표에 넣을 수 없음.
+    spk_feat: *speaker_feat   #if do NOT wanna process the feat when processing data, set &speaker_feat to False, then the feat_type will be used
+    feat_type: "consistent"
+    multi_task: False
+    spksInTrain: 251    #wsj0-2mix: 101; Libri2mix-100: 251; Libri2mix-360:921
+
+# find_unused_parameters: True
+
+model_init:
+  tse_model: null
+  discriminator: null
+  spk_model: null
+
+num_avg: 2
+num_epochs: 150
+
+optimizer:
+  tse_model: Adam
+optimizer_args:
+  tse_model:
+    lr: 0.001  # NOTICE: These args do NOT work! The initial lr is determined in the scheduler_args currently!
+    weight_decay: 0.0001
+
+clip_grad: 5.0
+save_epoch_interval: 10
+
+scheduler:
+  tse_model: ExponentialDecrease
+scheduler_args:
+  tse_model:
+    final_lr: 2.5e-05
+    initial_lr: 0.001
+    warm_from_zero: false
+    warm_up_epoch: 0
+
+seed: 42
+keep_last_epochs: 20
