@@ -227,7 +227,7 @@ def tse_collate_fn(batch, mode="min"):
                 spk_label.append(s["spk{}_label".format(i + 1)])
 
     if not (len(set(length_spk_embeds)) == 1):
-        if mode == "max":
+        if mode == "max":   # pad to the max length of speakers in batch
             max_len = max(length_spk_embeds)
             for i in range(len(length_spk_embeds)):
                 if len(spk_embeds[i].shape) == 2:
@@ -244,7 +244,7 @@ def tse_collate_fn(batch, mode="min"):
                         "constant",
                         0,
                     )
-        if mode == "min":
+        if mode == "min":   # truncate to the min length of speakers in batch
             min_len = min(length_spk_embeds)
             for i in range(len(length_spk_embeds)):
                 if len(spk_embeds[i].shape) == 2:

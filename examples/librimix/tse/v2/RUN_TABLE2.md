@@ -23,7 +23,7 @@ Table 2 는 화자 임베딩을 분리 모델에 **어떻게 섞느냐**만 바�
 |---|---|---|---|---|
 | **공용**<br>한 번만 | **1** | Libri2Mix 를 읽어 데이터 목록 만들기 | 몇 분 | 네 칸이 **똑같은 데이터**를 씀.<br>한 번 만들어 두면 다시 안 해도 됨 |
 | | **2** | shard tar 로 묶기 | 20~30분 | |
-| **개별**<br>실험마다 | **3** | **학습** (150 epoch) | **약 40시간** | fusion 마다 따로 학습하고 따로 평가함.<br>`exp_dir` 이 달라야 섞이지 않음 |
+| **개별**<br>실험마다 | **3** | **학습** (150 epoch) | **약 44시간** | fusion 마다 따로 학습하고 따로 평가함.<br>`exp_dir` 이 달라야 섞이지 않음 |
 | | **4** | 체크포인트 평균 | 1분 | |
 | | **5** | test 셋 추론 | 25분 | |
 | | **6** | 채점 (SI-SNRi · PESQ · STOI · DNSMOS) | 10분 | |
@@ -32,7 +32,8 @@ stage 1·2 의 결과는 `data/clean/{train-100,dev,test}` 이고,
 stage 3~6 의 결과는 `exp/bsrnn_ecapa_<fusion>/` 입니다 —
 **Table 2 에 쓸 숫자는 그 안의 `infer_utt_scores.csv`** 에 있습니다.
 
-**GPU 는 1장당 run 1개**로 씁니다. 4장이 있으면 네 칸을 동시에 돌려 **약 40시간**에 끝납니다.
+**GPU 는 1장당 run 1개**로 씁니다. 4장이 있으면 네 칸을 동시에 돌려 **약 44시간**에 끝납니다.
+(실측 — 4 run 이 43.1 ~ 44.4 시간, 평균 43.7. RTX 3090 · `compile_model: true` · `batch_size: 8`.)
 
 ---
 
@@ -183,7 +184,7 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
 | `--tracker_step_interval` | 몇 스텝마다 기록할지. 기본 50, `0` 이면 에포크만.<br>[run.sh:64](run.sh#L64) |
 
 **본 학습 전에 `--debug true` 로 한 번 돌려 볼 것.**
-40시간짜리를 띄워 놓고 3시간 뒤에 GPU 메모리 부족으로 죽은 것을 발견하는 일을 막아 줍니다.
+44시간짜리를 띄워 놓고 3시간 뒤에 GPU 메모리 부족으로 죽은 것을 발견하는 일을 막아 줍니다.
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
@@ -204,7 +205,7 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 3 --stop-stage 3 \
 `noise_type`(`clean`)을 붙여 `data/clean` 을 만듭니다.
 `--data data/clean` 을 주면 `data/clean/clean` 이 되어 파일을 못 찾습니다.
 
-**약 40시간**(150 epoch × 16분)입니다. 진행은 이렇게 봅니다:
+**약 44시간**(150 epoch × 약 17.5분)입니다. 진행은 이렇게 봅니다:
 
 ```bash
 tail -f exp/bsrnn_ecapa_FiLM/train.log
