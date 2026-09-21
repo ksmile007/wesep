@@ -69,7 +69,28 @@ pip install git+https://github.com/wenet-e2e/wespeaker.git
 패키지 이름이 PyPI 에 **등록돼 있지 않아**(`pip index versions wespeaker` → `from versions: none`)
 1) 의 목록에는 일부러 빼 두었음. 반드시 따로 깔아야 함.
 
-### 3) 시스템 패키지
+### 3) `sdfilm` — Table 2 네 칸에는 **필요 없음**
+
+```bash
+pip install -e /workspace/git_clone/SD-FiLM/src/models/cond_module
+```
+
+Table 2 의 네 칸(`concat`·`additive`·`multiply`·`FiLM`)은 **이것 없이 돕니다.**
+SD-FiLM 조건화를 붙인 칸을 돌릴 때만 필요함 — 그 배선은 `#81` 로 아직 착수 전임.
+
+`wespeaker` 와 같은 이유로 1) 의 목록에서 빼 두었음 — PyPI 에 없고,
+이 서버의 SD-FiLM 저장소를 가리키는 **editable 설치**임.
+`-e` 라 SD-FiLM 저장소에서 고친 것이 재설치 없이 바로 반영됨.
+의존성으로 `einops` 가 같이 깔리며 그것은 1) 의 목록에 들어 있음.
+
+> **`torch` 를 건드리면 안 됨.** 설치 로그에 `Collecting torch` 가 뜨면
+> 즉시 중단하고 `--no-deps` 로 다시 깔 것. `wesep2` 의 `torch==2.7.1+cu128` 이
+> 바뀌면 Table 2 네 칸이 **비교 불가**가 되고, `+cu128` CUDA 빌드가 PyPI 판으로
+> 바뀌어 GPU 를 못 잡을 수 있음.
+> 설치 절차와 되돌리는 법은 SD-FiLM 저장소의
+> `src/models/cond_module/README.md` 에 있음.
+
+### 4) 시스템 패키지
 
 ```bash
 apt-get install -y ffmpeg        # torchaudio 가 오디오를 읽을 때 부름
@@ -81,6 +102,7 @@ apt-get install -y ffmpeg        # torchaudio 가 오디오를 읽을 때 부름
 python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 # 2.7.1+cu128 True          <- 이렇게 나와야 함
 python -c "import wespeaker; print('wespeaker OK')"
+python -c "import sdfilm; print('sdfilm OK', len(sdfilm.__all__))"   # 3) 을 했을 때만
 ffmpeg -version | head -1
 ```
 
