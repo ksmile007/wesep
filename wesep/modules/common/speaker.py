@@ -18,9 +18,9 @@ class PreEmphasis(torch.nn.Module):
         )
 
     def forward(self, input: torch.tensor) -> torch.tensor:
-        input = input.unsqueeze(1)
-        input = F.pad(input, (1, 0), "reflect")
-        return F.conv1d(input, self.flipped_filter).squeeze(1)
+        input = input.unsqueeze(1)                               # (B, 1, t)
+        input = F.pad(input, (1, 0), "reflect")                  # (B, 1, t+1)
+        return F.conv1d(input, self.flipped_filter).squeeze(1)   # (B, t)
 
 
 class SpeakerTransform(nn.Module):
@@ -44,9 +44,9 @@ class SpeakerTransform(nn.Module):
 
     def forward(self, x):
         if len(x.size()) == 2:
-            return self.transforms(x.unsqueeze(-1)).squeeze(-1)
+            return self.transforms(x.unsqueeze(-1)).squeeze(-1)   # (B, emb)
         else:
-            return self.transforms(x)
+            return self.transforms(x)   # (B, emb, T)
 
 
 class LinearLayer(nn.Module):
@@ -57,7 +57,7 @@ class LinearLayer(nn.Module):
         self.linear = nn.Linear(in_features, out_features, bias)
 
     def forward(self, x, dummy: Optional[torch.Tensor] = None):
-        return self.linear(x)
+        return self.linear(x)   # (..., out_features)
 
 
 class SpeakerFuseLayer(nn.Module):
@@ -85,43 +85,43 @@ class SpeakerFuseLayer(nn.Module):
         :param embed: batch x dimension x 1
         :return:
         """
+        # B: 배치, nband: 서브밴드, N: feat_dim, emb: embed_dim, T: 프레임
+        # x.dim() == 4는 BSRNN 계열, x.dim() == 3은 DPCCN, TFGridNet 에서 넘어옴
+        # cross_ 시, embed 가 이미 (B, nband, N=emb, T)
         if self.fuse_type == "concat":
             # For Conv
             if len(x.size()) == 3:
-                embed_t = embed.expand(-1, -1, x.size(2))
-                y = torch.cat([x, embed_t], 1)
-                y = torch.transpose(y, 1, 2)
-                x = torch.transpose(self.fc(y), 1, 2)
-            else:
-                # len(x.size() == 4
-                embed_t = embed.expand(-1, x.size(1), -1, x.size(3))
-                y = torch.cat([x, embed_t], 2)
-                y = torch.transpose(y, 2, 3)
-                x = torch.transpose(self.fc(y), 2, 3).contiguous()
+                embed_t = embed.expand(-1, -1, x.size(2))   # (B, emb, T)
+                y = torch.cat([x, embed_t], 1)              # (B, N+emb, T)
+                y = torch.transpose(y, 1, 2)                # (B, T, N+emb)
+                x = torch.transpose(self.fc(y), 1, 2)       # (B, N, T)
+            else:   # len(x.size()) == 4
+                embed_t = embed.expand(-1, x.size(1), -1, x.size(3))   # (B, nband, emb, T)
+                y = torch.cat([x, embed_t], 2)                         # (B, nband, N+emb, T)
+                y = torch.transpose(y, 2, 3)                           # (B, nband, T, N+emb)
+                x = torch.transpose(self.fc(y), 2, 3).contiguous()     # (B, nband, N, T)
                 # print(x.size())
         elif self.fuse_type == "additive":
             if len(x.size()) == 3:
-                embed_t = embed.expand(-1, -1, x.size(2))
-                embed_t = torch.transpose(embed_t, 1, 2)
-                x = x + torch.transpose(self.fc(embed_t), 1, 2)
-            else:
-                # len(x.size() == 4
-                embed_t = embed.expand(-1, x.size(1), -1, x.size(3))
-                embed_t = torch.transpose(embed_t, 2, 3)
-                x = x + torch.transpose(self.fc(embed_t), 2, 3)
+                embed_t = embed.expand(-1, -1, x.size(2))         # (B, emb, T)
+                embed_t = torch.transpose(embed_t, 1, 2)          # (B, T, emb)
+                x = x + torch.transpose(self.fc(embed_t), 1, 2)   # (B, N, T)
+            else:   # len(x.size()) == 4
+                embed_t = embed.expand(-1, x.size(1), -1, x.size(3))   # (B, nband, emb, T)
+                embed_t = torch.transpose(embed_t, 2, 3)               # (B, nband, T, emb)
+                x = x + torch.transpose(self.fc(embed_t), 2, 3)        # (B, nband, N, T)
         elif self.fuse_type == "multiply":
             if len(x.size()) == 3:
-                embed_t = embed.expand(-1, -1, x.size(2))
-                embed_t = torch.transpose(embed_t, 1, 2)
-                x = x * torch.transpose(self.fc(embed_t), 1, 2)
-            else:
-                # len(x.size() == 4
-                embed_t = embed.expand(-1, x.size(1), -1, x.size(3))
-                embed_t = torch.transpose(embed_t, 2, 3)
-                x = x * torch.transpose(self.fc(embed_t), 2, 3)
+                embed_t = embed.expand(-1, -1, x.size(2))         # (B, emb, T)
+                embed_t = torch.transpose(embed_t, 1, 2)          # (B, T, emb)
+                x = x * torch.transpose(self.fc(embed_t), 1, 2)   # (B, N, T)
+            else:   # len(x.size()) == 4
+                embed_t = embed.expand(-1, x.size(1), -1, x.size(3))   # (B, nband, emb, T)
+                embed_t = torch.transpose(embed_t, 2, 3)               # (B, nband, T, emb)
+                x = x * torch.transpose(self.fc(embed_t), 2, 3)        # (B, nband, N, T)
         else:
-            embed = embed.squeeze(-1)
-            x = self.fc(embed, x)
+            embed = embed.squeeze(-1)   # (B, 1, emb)
+            x = self.fc(embed, x)       # (B, nband, N, T) 또는 (B, N, T)
         return x
 
 

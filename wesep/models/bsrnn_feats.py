@@ -35,17 +35,19 @@ class ResRNN(nn.Module):
 
         # linear projection layer
         self.proj = nn.Linear(hidden_size * 2,
-                              input_size)  # hidden_size = feature_dim * 2
+                              input_size)   # hidden_size = feature_dim * 2
 
     def forward(self, input):
         # input shape: batch, dim, seq
 
-        rnn_output, _ = self.rnn(self.norm(input).transpose(1, 2).contiguous())
+        # band_rnn 호출 시: B'=B*nband, C=N, L=T
+        # band_comm 호출 시: B'=B*T, C=N, L=nband
+        rnn_output, _ = self.rnn(self.norm(input).transpose(1, 2).contiguous())   # (B', L, 2*hidden)
         rnn_output = self.proj(rnn_output.contiguous().view(
             -1, rnn_output.shape[2])).view(input.shape[0], input.shape[2],
-                                           input.shape[1])
+                                           input.shape[1])   # (B', L, C)
 
-        return input + rnn_output.transpose(1, 2).contiguous()
+        return input + rnn_output.transpose(1, 2).contiguous()   # (B', C, L)
 
 
 """
@@ -70,19 +72,20 @@ class BSNet(nn.Module):
 
     def forward(self, input, dummy: Optional[torch.Tensor] = None):
         # input shape: B, nband*N, T
+        # 지역변수 N = nband*feature_dim. 아래 주석의 N 은 feature_dim
         B, N, T = input.shape
 
         band_output = self.band_rnn(
             input.view(B * self.nband, self.feature_dim,
-                       -1)).view(B, self.nband, -1, T)
+                       -1)).view(B, self.nband, -1, T)   # (B, nband, N, T)
 
         # band comm
         band_output = (band_output.permute(0, 3, 2, 1).contiguous().view(
-            B * T, -1, self.nband))
+            B * T, -1, self.nband))   # (B*T, N, nband)
         output = (self.band_comm(band_output).view(
-            B, T, -1, self.nband).permute(0, 3, 2, 1).contiguous())
+            B, T, -1, self.nband).permute(0, 3, 2, 1).contiguous())   # (B, nband, N, T)
 
-        return output.view(B, N, T)
+        return output.view(B, N, T)   # (B, nband*N, T)
 
 class CrossAtt(nn.Module):
     def __init__(self, embed_dim, num_heads, *args, **kwargs):
@@ -91,20 +94,21 @@ class CrossAtt(nn.Module):
                                                     *args, **kwargs)
 
     def forward(self, query, key, value):
+        # query.dim() == 4 시, 대역마다 따로 어텐션 후 마지막에 쌓음
         if query.dim() == 4:
             spk_embeddings = []
             for i in range(query.shape[1]):
-                x = query[:, i, :, :].squeeze(dim=1)  # (batch, feature, time)
+                x = query[:, i, :, :].squeeze(dim=1)   # (batch, feature, time)
                 x, _ = self.multihead_attn(x.transpose(1, 2),
                                            key.transpose(1, 2),
-                                           value.transpose(1, 2))
-                spk_embeddings.append(x.transpose(1, 2))
-            spk_embeddings = torch.stack(spk_embeddings, dim=1)
+                                           value.transpose(1, 2))   # (B, T, N). 어텐션 가중치 _ 는 (B, T, T_spk)
+                spk_embeddings.append(x.transpose(1, 2))   # nband 개 x (B, N, T)
+            spk_embeddings = torch.stack(spk_embeddings, dim=1)   # (B, nband, N, T)
         elif query.dim() == 3:
             x, _ = self.multihead_attn(query.transpose(1, 2),
                                        key.transpose(1, 2),
-                                       value.transpose(1, 2))
-            spk_embeddings = x.transpose(1, 2)
+                                       value.transpose(1, 2))   # (B, T, N)
+            spk_embeddings = x.transpose(1, 2)   # (B, N, T)
         return spk_embeddings
 
 class FuseSeparation(nn.Module):
@@ -130,7 +134,7 @@ class FuseSeparation(nn.Module):
 
         self.attenFuse = nn.ModuleList([])
         if spk_fuse_type and spk_fuse_type.startswith("cross_"):
-            spk_emb_frame_dim = 512     # Ecapa_TDNN
+            spk_emb_frame_dim = 512   # Ecapa_TDNN
             spk_emb_dim = feature_dim
             self.attenFuse.append(nn.Linear(spk_emb_frame_dim, feature_dim))
             self.attenFuse.append(CrossAtt(embed_dim=feature_dim, num_heads=2,
@@ -164,21 +168,23 @@ class FuseSeparation(nn.Module):
         """
         batch_size = x.shape[0]
 
+        # multi_fuse=True 시, SpeakerFuseLayer 와 BSNet 이 번갈아 나옴
+        # 그래서 x 가 (B, nband, N, T) 와 (B, nband*N, T) 를 오감
         if self.spk_fuse_type and self.spk_fuse_type.startswith('cross_'):
-            spk_embedding = spk_embedding.transpose(1, 2)
-            spk_embedding = self.attenFuse[0](spk_embedding)
-            spk_embedding = spk_embedding.transpose(1, 2)
-            spk_embedding = self.attenFuse[1](x, spk_embedding, spk_embedding)
+            spk_embedding = spk_embedding.transpose(1, 2)                        # (B, T_spk, 512)
+            spk_embedding = self.attenFuse[0](spk_embedding)                     # (B, T_spk, N)
+            spk_embedding = spk_embedding.transpose(1, 2)                        # (B, N, T_spk)
+            spk_embedding = self.attenFuse[1](x, spk_embedding, spk_embedding)   # (B, nband, N, T)
 
         if self.multi_fuse and self.spk_fuse_type:
             for i, sep_func in enumerate(self.separation):
                 x = sep_func(x, spk_embedding)
                 if i % 2 == 0:
                     x = x.view(batch_size * nch, self.nband * self.feature_dim,
-                               -1)
+                               -1)   # (B, nband*N, T)
                 else:
                     x = x.view(batch_size * nch, self.nband, self.feature_dim,
-                               -1)
+                               -1)   # (B, nband, N, T)
                     if self.spk_fuse_type.startswith('cross_'):
                         spk_embedding = spk_embedding.transpose(1, 2)
                         spk_embedding = self.attenFuse[0](spk_embedding)
@@ -188,13 +194,13 @@ class FuseSeparation(nn.Module):
         else:
             idx_start = -1
             if self.spk_fuse_type:
-                x = self.separation[0](x, spk_embedding)
+                x = self.separation[0](x, spk_embedding)   # (B, nband, N, T)
                 idx_start += 1
-            x = x.view(batch_size * nch, self.nband * self.feature_dim, -1)
+            x = x.view(batch_size * nch, self.nband * self.feature_dim, -1)   # (B, nband*N, T)
             for idx, sep in enumerate(self.separation):
                 if idx > idx_start:
-                    x = sep(x, spk_embedding)
-            x = x.view(batch_size * nch, self.nband, self.feature_dim, -1)
+                    x = sep(x, spk_embedding)   # (B, nband*N, T)
+            x = x.view(batch_size * nch, self.nband, self.feature_dim, -1)   # (B, nband, N, T)
         return x
 
 
@@ -356,8 +362,11 @@ class BSRNN_Feats(nn.Module):
     def forward(self, input, embeddings):
         # input shape: (B, C, T)
 
-        wav_input = input
-        spk_emb_input = embeddings
+        # B: 배치, nband: 서브밴드(32), N: feature_dim, emb: spk_emb_dim
+        # T: 프레임, t: 샘플, F: enc_dim(win//2+1), BW: band_width[i]
+        # T_spk, t_spk: 등록 발화 쪽 길이, spec_map: 2 또는 3
+        wav_input = input            # (B, t)
+        spk_emb_input = embeddings   # (B, t_spk) 또는 (B, T_spk, 80)
         batch_size, nsample = wav_input.shape
         nch = 1
 
@@ -369,9 +378,9 @@ class BSRNN_Feats(nn.Module):
             window=torch.hann_window(self.win).to(wav_input.device).type(
                 wav_input.type()),
             return_complex=True,
-        )
+        )   # (B, F, T) 복소수
 
-        spec_RI = torch.stack([spec.real, spec.imag], 1)  # B*nch, 2, F, T
+        spec_RI = torch.stack([spec.real, spec.imag], 1)   # B*nch, 2, F, T
 
         # Calculate the spectral level feature
         if self.spectral_feat:
@@ -382,7 +391,7 @@ class BSRNN_Feats(nn.Module):
                 window=torch.hann_window(self.win).to(spk_emb_input.device).type(
                     spk_emb_input.type()),
                 return_complex=True,
-            )  
+            )   # (B, F, T_spk) 복소수
             if self.spectral_feat == 'tfmap_spec':
                 mix_mag_ori = torch.abs(spec)
                 enroll_mag = torch.abs(aux_c)
@@ -408,7 +417,7 @@ class BSRNN_Feats(nn.Module):
 
                 spec_RI = torch.cat((spec_RI, tf_map.unsqueeze(1)), dim=1)
 
-            if self.spectral_feat == 'tfmap_emb':  # Only Ecapa-TDNN.
+            if self.spectral_feat == 'tfmap_emb':   # Only Ecapa-TDNN.
                 with torch.no_grad():
                     signal_dim = wav_input.dim()
                     extended_shape = (
@@ -420,8 +429,8 @@ class BSRNN_Feats(nn.Module):
                         wav_input.view(extended_shape),
                         [pad, pad],
                         mode="reflect"
-                    )
-                    mix_emb = mix_emb.view(mix_emb.shape[-signal_dim:])
+                    )                                                     # (1, B, t+win)
+                    mix_emb = mix_emb.view(mix_emb.shape[-signal_dim:])   # (B, t+win)
 
                     signal_dim = spk_emb_input.dim()
                     extended_shape = (
@@ -433,8 +442,8 @@ class BSRNN_Feats(nn.Module):
                         spk_emb_input.view(extended_shape),
                         [pad, pad],
                         mode="reflect"
-                    )
-                    spk_emb = spk_emb.view(spk_emb.shape[-signal_dim:])
+                    )                                                     # (1, B, t_spk+win)
+                    spk_emb = spk_emb.view(spk_emb.shape[-signal_dim:])   # (B, t_spk+win)
 
                     spk_emb = compute_fbank(
                         spk_emb, 
@@ -442,53 +451,53 @@ class BSRNN_Feats(nn.Module):
                         frame_shift=self.stride * 1e3 / self.sr,
                         dither=0.0, 
                         sample_rate=self.sr
-                    )
+                    )   # (B, T_spk, 80)
                     mix_emb = compute_fbank(
                         mix_emb, 
                         frame_length=self.win * 1e3 / self.sr,
                         frame_shift=self.stride * 1e3 / self.sr,
                         dither=0.0, 
                         sample_rate=self.sr
-                    )
-                    mix_emb = apply_cmvn(mix_emb)
-                    spk_emb = apply_cmvn(spk_emb)
+                    )                               # (B, T, 80)
+                    mix_emb = apply_cmvn(mix_emb)   # (B, T, 80)
+                    spk_emb = apply_cmvn(spk_emb)   # (B, T_spk, 80)
 
-                spk_emb = self.spk_model(spk_emb)
+                spk_emb = self.spk_model(spk_emb)   # 튜플 - 프레임 (B, 512, T_spk) · 임베딩 (B, emb)
                 if isinstance(spk_emb, tuple):
-                    spk_emb_frame = spk_emb[0]
+                    spk_emb_frame = spk_emb[0]   # (B, 512, T_spk)
                 else:
-                    spk_emb_frame = spk_emb
-                mix_emb = self.spk_model(mix_emb)
+                    spk_emb_frame = spk_emb   # (B, 512, T_spk)
+                mix_emb = self.spk_model(mix_emb)   # 튜플 - 프레임 (B, 512, T) · 임베딩 (B, emb)
                 if isinstance(mix_emb, tuple):
-                    mix_emb_frame = mix_emb[0]
+                    mix_emb_frame = mix_emb[0]   # (B, 512, T)
                 else:
-                    mix_emb_frame = mix_emb
+                    mix_emb_frame = mix_emb   # (B, 512, T)
 
-                mix_emb_frame_ = F.normalize(mix_emb_frame, p=2, dim=1)
-                spk_emb_frame_ = F.normalize(spk_emb_frame, p=2, dim=1)
+                mix_emb_frame_ = F.normalize(mix_emb_frame, p=2, dim=1)   # (B, 512, T)
+                spk_emb_frame_ = F.normalize(spk_emb_frame, p=2, dim=1)   # (B, 512, T_spk)
 
-                mix_emb_frame_ = mix_emb_frame_.transpose(1, 2)
-                att_scores = torch.matmul(mix_emb_frame_, spk_emb_frame_)
-                att_weights = F.softmax(att_scores, dim=-1)
+                mix_emb_frame_ = mix_emb_frame_.transpose(1, 2)             # (B, T, 512)
+                att_scores = torch.matmul(mix_emb_frame_, spk_emb_frame_)   # (B, T, T_spk)
+                att_weights = F.softmax(att_scores, dim=-1)                 # (B, T, T_spk)
 
-                mix_mag_ori = torch.abs(spec)
-                enroll_mag = torch.abs(aux_c)
+                mix_mag_ori = torch.abs(spec)   # (B, F, T)
+                enroll_mag = torch.abs(aux_c)   # (B, F, T_spk)
 
-                enroll_mag = enroll_mag.transpose(1, 2)
+                enroll_mag = enroll_mag.transpose(1, 2)   # (B, T_spk, F)
                 # enroll_mag = F.normalize(enroll_mag, p=2, dim=1)
-                tf_map = torch.matmul(att_weights, enroll_mag)
-                tf_map = tf_map.transpose(1, 2)
+                tf_map = torch.matmul(att_weights, enroll_mag)   # (B, T, F)
+                tf_map = tf_map.transpose(1, 2)                  # (B, F, T)
 
-                tf_map = tf_map / tf_map.norm(dim=1, keepdim=True)
+                tf_map = tf_map / tf_map.norm(dim=1, keepdim=True)   # (B, F, T)
                 # Recover the energy of estimated tfmap feature
                 tf_map = (
                     torch.sum(mix_mag_ori * tf_map, dim=1, keepdim=True) 
                     * tf_map
-                )
+                )   # (B, F, T)
                 # Another kind of nomalization for tf_map feature
                 # tf_map = tf_map * mix_mag_ori.norm(dim=1, keepdim=True)
 
-                spec_RI = torch.cat((spec_RI, tf_map.unsqueeze(1)), dim=1)
+                spec_RI = torch.cat((spec_RI, tf_map.unsqueeze(1)), dim=1)   # (B, spec_map, F, T)
 
         # concat real and imag, split to subbands
         subband_spec = []
@@ -496,9 +505,9 @@ class BSRNN_Feats(nn.Module):
         band_idx = 0
         for i in range(len(self.band_width)):
             subband_spec.append(spec_RI[:, :, band_idx:band_idx +
-                                        self.band_width[i]].contiguous())
+                                        self.band_width[i]].contiguous())   # nband 개 x (B, spec_map, BW, T)
             subband_mix_spec.append(spec[:, band_idx:band_idx +
-                                         self.band_width[i]])  # B*nch, BW, T
+                                         self.band_width[i]])   # B*nch, BW, T
             band_idx += self.band_width[i]
 
         # normalization and bottleneck
@@ -507,63 +516,63 @@ class BSRNN_Feats(nn.Module):
             subband_feature.append(
                 bn_func(subband_spec[i].view(batch_size * nch,
                                              self.band_width[i] * self.spec_map,
-                                             -1)))
-        subband_feature = torch.stack(subband_feature, 1)  # B, nband, N, T
+                                             -1)))   # nband 개 x (B, N, T)
+        subband_feature = torch.stack(subband_feature, 1)   # B, nband, N, T
         # print(subband_feature.size(), spk_emb_input.size())
 
         predict_speaker_lable = torch.tensor(0.0).to(
-            spk_emb_input.device)  # dummy
+            spk_emb_input.device)   # dummy
         if (
             (self.spectral_feat and self.spectral_feat == "tfmap_emb")
             and (self.spk_fuse_type and self.spk_fuse_type.startswith("cross_"))
         ):
-            spk_emb_input = spk_emb_frame
+            spk_emb_input = spk_emb_frame   # (B, 512, T_spk)
         elif self.joint_training and self.spk_fuse_type:
             if not self.spk_feat:
                 if self.feat_type == "consistent":
                     with torch.no_grad():
-                        spk_emb_input = self.preEmphasis(spk_emb_input)
-                        spk_emb_input = self.spk_encoder(spk_emb_input) + 1e-8
-                        spk_emb_input = spk_emb_input.log()
+                        spk_emb_input = self.preEmphasis(spk_emb_input)          # (B, t_spk)
+                        spk_emb_input = self.spk_encoder(spk_emb_input) + 1e-8   # (B, 80, T_spk)
+                        spk_emb_input = spk_emb_input.log()                      # (B, 80, T_spk)
                         spk_emb_input = spk_emb_input - torch.mean(
-                            spk_emb_input, dim=-1, keepdim=True)
-                        spk_emb_input = spk_emb_input.permute(0, 2, 1)
+                            spk_emb_input, dim=-1, keepdim=True)   # (B, 80, T_spk)
+                        spk_emb_input = spk_emb_input.permute(0, 2, 1)   # (B, T_spk, 80)
 
             if self.spk_fuse_type and self.spk_fuse_type.startswith("cross_"):
                 tmp_spk_emb_input = self.spk_model._get_frame_level_feat(
-                    spk_emb_input)
+                    spk_emb_input)   # (B, 512, T_spk)
             else:
-                tmp_spk_emb_input = self.spk_model(spk_emb_input)
+                tmp_spk_emb_input = self.spk_model(spk_emb_input)   # 튜플 - 프레임 (B, 512, T_spk) · 임베딩 (B, emb)
             if isinstance(tmp_spk_emb_input, tuple):
-                spk_emb_input = tmp_spk_emb_input[-1]
+                spk_emb_input = tmp_spk_emb_input[-1]   # (B, emb)
             else:
-                spk_emb_input = tmp_spk_emb_input
-            predict_speaker_lable = self.pred_linear(spk_emb_input)
+                spk_emb_input = tmp_spk_emb_input   # (B, emb)
+            predict_speaker_lable = self.pred_linear(spk_emb_input)   # (B, spksInTrain). multi_task=False 면 Identity 라 (B, emb)
 
-        spk_embedding = self.spk_transform(spk_emb_input)
+        spk_embedding = self.spk_transform(spk_emb_input)   # (B, emb). cross_ 면 (B, 512, T_spk) 가 그대로 지나감
         if self.spk_fuse_type and not self.spk_fuse_type.startswith("cross_"):
-            spk_embedding = spk_embedding.unsqueeze(1).unsqueeze(3)
+            spk_embedding = spk_embedding.unsqueeze(1).unsqueeze(3)   # (B, 1, emb, 1)
 
         sep_output = self.separator(subband_feature, spk_embedding,
-                                    torch.tensor(nch))
+                                    torch.tensor(nch))   # (B, nband, N, T)
 
         sep_subband_spec = []
         for i, mask_func in enumerate(self.mask):
             this_output = mask_func(sep_output[:, i]).view(
-                batch_size * nch, 2, 2, self.band_width[i], -1)
+                batch_size * nch, 2, 2, self.band_width[i], -1)   # (B, 2, 2, BW, T)
             this_mask = this_output[:, 0] * torch.sigmoid(
-                this_output[:, 1])  # B*nch, 2, K, BW, T
-            this_mask_real = this_mask[:, 0]  # B*nch, K, BW, T
-            this_mask_imag = this_mask[:, 1]  # B*nch, K, BW, T
+                this_output[:, 1])   # B*nch, 2, K, BW, T
+            this_mask_real = this_mask[:, 0]   # B*nch, K, BW, T
+            this_mask_imag = this_mask[:, 1]   # B*nch, K, BW, T
             est_spec_real = (subband_mix_spec[i].real * this_mask_real -
                              subband_mix_spec[i].imag * this_mask_imag
-                             )  # B*nch, BW, T
+                             )   # B*nch, BW, T
             est_spec_imag = (subband_mix_spec[i].real * this_mask_imag +
                              subband_mix_spec[i].imag * this_mask_real
-                             )  # B*nch, BW, T
+                             )   # B*nch, BW, T
             sep_subband_spec.append(torch.complex(est_spec_real,
-                                                  est_spec_imag))
-        est_spec = torch.cat(sep_subband_spec, 1)  # B*nch, F, T
+                                                  est_spec_imag))   # nband 개 x (B, BW, T) 복소수
+        est_spec = torch.cat(sep_subband_spec, 1)   # B*nch, F, T
         output = torch.istft(
             est_spec.view(batch_size * nch, self.enc_dim, -1),
             n_fft=self.win,
@@ -571,10 +580,10 @@ class BSRNN_Feats(nn.Module):
             window=torch.hann_window(self.win).to(wav_input.device).type(
                 wav_input.type()),
             length=nsample,
-        )
+        )   # (B, t)
 
-        output = output.view(batch_size, nch, -1)
-        s = torch.squeeze(output, dim=1)
+        output = output.view(batch_size, nch, -1)   # (B, nch, t)
+        s = torch.squeeze(output, dim=1)            # (B, t)
         return s, predict_speaker_lable
 
 

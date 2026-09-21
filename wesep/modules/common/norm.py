@@ -37,14 +37,14 @@ class GlobalChannelLayerNorm(nn.Module):
             raise RuntimeError("{} accept 3D tensor as input".format(
                 self.__name__))
 
-        mean = torch.mean(x, (1, 2), keepdim=True)
-        var = torch.mean((x - mean)**2, (1, 2), keepdim=True)
+        mean = torch.mean(x, (1, 2), keepdim=True)              # (B, 1, 1)
+        var = torch.mean((x - mean)**2, (1, 2), keepdim=True)   # (B, 1, 1)
         # N x C x L
         if self.elementwise_affine:
             x = (self.weight * (x - mean) / torch.sqrt(var + self.eps) +
-                 self.bias)
+                 self.bias)   # (B, C, L)
         else:
-            x = (x - mean) / torch.sqrt(var + self.eps)
+            x = (x - mean) / torch.sqrt(var + self.eps)   # (B, C, L)
         return x
 
 
@@ -60,9 +60,9 @@ class ChannelWiseLayerNorm(nn.LayerNorm):
         """
         x: N x C x T
         """
-        x = torch.transpose(x, 1, 2)
-        x = super().forward(x)
-        x = torch.transpose(x, 1, 2)
+        x = torch.transpose(x, 1, 2)   # (B, T, C)
+        x = super().forward(x)         # (B, T, C)
+        x = torch.transpose(x, 1, 2)   # (B, C, T)
         return x
 
 
@@ -116,24 +116,26 @@ class FiLM(nn.Module):
             nn.init.zeros_(self.beta_fcs[i].bias)
 
     def forward(self, embed, x):
+        # B: 배치, nband: 서브밴드, N: feat_size, emb: embed_size, T: 프레임
+        # BSRNN 계열 기준 embed: (B, 1, emb), x: (B, nband, N, T)
         gamma, beta = None, None
         for i in range(len(self.gamma_fcs)):
             if i == 0:
-                gamma = self.gamma_fcs[i](embed)
-                beta = self.beta_fcs[i](embed)
+                gamma = self.gamma_fcs[i](embed)   # (B, 1, N)
+                beta = self.beta_fcs[i](embed)     # (B, 1, N)
             else:
-                gamma = self.gamma_fcs[i](gamma)
-                beta = self.beta_fcs[i](beta)
+                gamma = self.gamma_fcs[i](gamma)   # (B, 1, N)
+                beta = self.beta_fcs[i](beta)      # (B, 1, N)
 
         if len(gamma.shape) < len(x.shape):
-            gamma = gamma.unsqueeze(-1).expand_as(x)
-            beta = beta.unsqueeze(-1).expand_as(x)
+            gamma = gamma.unsqueeze(-1).expand_as(x)   # (B, nband, N, T)
+            beta = beta.unsqueeze(-1).expand_as(x)     # (B, nband, N, T)
         else:
-            gamma = gamma.expand_as(x)
-            beta = beta.expand_as(x)
+            gamma = gamma.expand_as(x)   # x 와 같음
+            beta = beta.expand_as(x)     # x 와 같음
 
         # print(gamma.size(), beta.size())
-        x = (1 + gamma) * x + beta
+        x = (1 + gamma) * x + beta   # (B, nband, N, T)
         if self.layer_norm is not None:
             x = self.layer_norm(x)
         return x
@@ -174,8 +176,8 @@ class ConditionalLayerNorm(nn.Module):
         nn.init.zeros_(self.bias)
 
     def forward(self, input, embed):
-        mean = torch.mean(input, -1, keepdim=True)
-        var = torch.var(input, -1, unbiased=False, keepdim=True)
+        mean = torch.mean(input, -1, keepdim=True)                 # (B, ..., 1)
+        var = torch.var(input, -1, unbiased=False, keepdim=True)   # (B, ..., 1)
         weight = self.ln_weight_modulation(
             embed, self.weight.expand(embed.size(0), -1))
         if self.ln_bias_modulation is None:
@@ -183,7 +185,7 @@ class ConditionalLayerNorm(nn.Module):
         else:
             bias = self.ln_bias_modulation(embed,
                                            self.bias.expand(embed.size(0), -1))
-        res = (input - mean) / torch.sqrt(var + self.eps) * weight + bias
+        res = (input - mean) / torch.sqrt(var + self.eps) * weight + bias   # input 과 같음
         return res
 
     def extra_repr(self):
