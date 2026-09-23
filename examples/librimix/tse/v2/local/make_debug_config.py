@@ -7,10 +7,17 @@
 
 `steps_per_epoch` 만 특별 취급함 — train.py 가 에포크당 스텝을 직접 받지 않고
 sample_num_per_epoch // world_size // batch_size 로 계산하기 때문에 batch_size 를 곱해 넣는다.
+
+본 config 는 yaml 로 직접 읽지 않고 load_config_with_base() 로 **먼저 합성**한다 (#83).
+hydra 의 defaults 를 쓰는 config 은 자기 폴더에 형제 yaml 이 있어야 풀리는데,
+내보낼 곳은 exp_dir 이라 그 형제가 없어 MissingConfigException 이 난다.
+합성해서 내보내면 그 파일 하나로 완결되므로 어느 폴더에 둬도 읽힌다.
 """
 import sys
 
 import yaml
+
+from wesep.utils.utils import load_config_with_base
 
 
 def deep_update(base: dict, overlay: dict) -> dict:
@@ -24,7 +31,7 @@ def deep_update(base: dict, overlay: dict) -> dict:
 
 
 def main(base_path: str, overlay_path: str, out_path: str) -> None:
-    base = yaml.safe_load(open(base_path))
+    base = load_config_with_base(base_path)   # defaults 를 합성해 평평하게 만든다
     overlay = yaml.safe_load(open(overlay_path)) or {}
 
     steps = overlay.pop("steps_per_epoch", None)

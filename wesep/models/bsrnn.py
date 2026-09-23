@@ -96,6 +96,7 @@ class FuseSeparation(nn.Module):
         spk_emb_dim=256,
         spk_fuse_type="concat",
         multi_fuse=True,
+        spk_fuse_kwargs=None,   # <<<<< 더한 것 - SD-FiLM 하이퍼파라미터 통로 (#83)
     ):
         """
 
@@ -113,6 +114,7 @@ class FuseSeparation(nn.Module):
                         embed_dim=spk_emb_dim,
                         feat_dim=feature_dim,
                         fuse_type=spk_fuse_type,
+                        spk_fuse_kwargs=spk_fuse_kwargs,   # <<<<< 더한 것 (#83)
                     ))
                 self.separation.append(BSNet(nband * feature_dim, nband))
         else:
@@ -121,6 +123,7 @@ class FuseSeparation(nn.Module):
                     embed_dim=spk_emb_dim,
                     feat_dim=feature_dim,
                     fuse_type=spk_fuse_type,
+                    spk_fuse_kwargs=spk_fuse_kwargs,   # <<<<< 더한 것 (#83)
                 ))
             for _ in range(num_repeat):
                 self.separation.append(BSNet(nband * feature_dim, nband))
@@ -167,6 +170,7 @@ class BSRNN(nn.Module):
         use_spk_transform=True,
         use_bidirectional=True,
         spk_fuse_type="concat",
+        spk_fuse_kwargs=None,   # <<<<< 더한 것 - SD-FiLM 하이퍼파라미터 통로 (#83)
         multi_fuse=True,
         joint_training=True,
         multi_task=False,
@@ -194,7 +198,18 @@ class BSRNN(nn.Module):
         self.feat_type = feat_type
         self.spk_model_freeze = spk_model_freeze
         self.spk_model_eval = spk_model_eval   # <<<<< 더한 것 (#85)
+        self.spk_fuse_type = spk_fuse_type     # <<<<< 더한 것 - forward 의 조건 모양 분기용 (#81)
         self.multi_task = multi_task
+
+        # <<<<< 더한 것 - SD-FiLM 은 프레임 시퀀스 (B, 512, T_spk) 를 조건으로 받는데
+        #       SpeakerTransform 은 embed_dim=256 으로 만들어져 512 채널을 못 받는다.
+        #       Table 2 config 4벌이 use_spk_transform: False 라 실제로 걸리지 않지만,
+        #       True 로 켜면 조용히 죽는 대신 여기서 이유를 말하고 멈춘다 (#83).
+        if spk_fuse_type == "sdfilm" and use_spk_transform:
+            raise ValueError(
+                "spk_fuse_type='sdfilm' 은 use_spk_transform=True 와 같이 못 쓴다 - "
+                "SpeakerTransform 이 풀링 벡터(embed_dim)용이라 프레임 채널 512 를 "
+                "받지 못한다 (#83).")
 
         # 0-1k (100 hop), 1k-4k (250 hop),
         # 4k-8k (500 hop), 8k-16k (1k hop),
@@ -270,6 +285,7 @@ class BSRNN(nn.Module):
             feature_dim=feature_dim,
             spk_emb_dim=spk_emb_dim,
             spk_fuse_type=spk_fuse_type,
+            spk_fuse_kwargs=spk_fuse_kwargs,   # <<<<< 더한 것 (#83)
             multi_fuse=multi_fuse,
         )
 
@@ -368,6 +384,7 @@ class BSRNN(nn.Module):
 
         predict_speaker_lable = torch.tensor(0.0).to(
             spk_emb_input.device)   # dummy
+        spk_frame_feat = None   # <<<<< 더한 것 - 화자 인코더의 프레임 시퀀스 (#81)
         if self.joint_training:
             if not self.spk_feat:
                 if self.feat_type == "consistent":
@@ -381,13 +398,28 @@ class BSRNN(nn.Module):
 
             tmp_spk_emb_input = self.spk_model(spk_emb_input)   # 튜플 - 프레임 (B, 512, T_spk) · 임베딩 (B, emb)
             if isinstance(tmp_spk_emb_input, tuple):
+                # <<<<< 더한 것 - [0] 은 프레임 (B, 512, T_spk), [-1] 은 풀링 (B, emb).
+                #       원본은 [-1] 만 썼고 [0] 은 버렸다 (#81).
+                spk_frame_feat = tmp_spk_emb_input[0]   # (B, 512, T_spk)
                 spk_emb_input = tmp_spk_emb_input[-1]   # (B, emb)
             else:
                 spk_emb_input = tmp_spk_emb_input   # (B, emb)
             predict_speaker_lable = self.pred_linear(spk_emb_input)   # (B, spksInTrain). multi_task=False 면 Identity 라 (B, emb)
 
-        spk_embedding = self.spk_transform(spk_emb_input)         # (B, emb)
-        spk_embedding = spk_embedding.unsqueeze(1).unsqueeze(3)   # (B, 1, emb, 1)
+        # <<<<< 더한 것 - SD-FiLM 은 풀링 벡터가 아니라 프레임 시퀀스를 조건으로 받는다 (#81·#83).
+        #       벡터 하나면 L_s=1 이라 softmax 가 원소 1개 위에서 돌아 항상 1 이 되고,
+        #       SD-FiLM 이 FiLM 으로 퇴화한다. (B, 512, T_spk) 를 그대로 넘기고
+        #       (B, T_spk, 512) 로의 전치는 SpeakerFuseLayer 가 einops 로 한다.
+        #       pred_linear(multi_task) 는 위에서 풀링 벡터를 그대로 쓰므로 영향이 없다.
+        if self.spk_fuse_type == "sdfilm":
+            if spk_frame_feat is None:
+                raise ValueError(
+                    "spk_fuse_type='sdfilm' 은 프레임 시퀀스가 필요하다 - "
+                    "joint_training=True 이고 튜플을 돌려주는 화자 인코더여야 한다 (#81).")
+            spk_embedding = spk_frame_feat                        # (B, 512, T_spk)
+        else:
+            spk_embedding = self.spk_transform(spk_emb_input)         # (B, emb)
+            spk_embedding = spk_embedding.unsqueeze(1).unsqueeze(3)   # (B, 1, emb, 1)
 
         sep_output = self.separator(subband_feature, spk_embedding,
                                     torch.tensor(nch))   # (B, nband, N, T)

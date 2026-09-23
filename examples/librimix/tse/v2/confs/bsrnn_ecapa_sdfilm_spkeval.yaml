@@ -1,0 +1,32 @@
+# >>>>> SD-FiLM 칸 (#81·#83). bsrnn_ecapa_FiLM_spkeval.yaml 을 defaults 로 상속하고
+#       다른 키만 적음 — 복사본이 아니므로 base 를 고치면 이 칸도 같이 따라감.
+#
+#       base 를 spkeval 판으로 잡은 이유 — #85 로 다시 도는 새 run 2개(FiLM · SD-FiLM)가
+#       같은 조건이어야 비교가 성립함. spk_model_eval: True 가 거기서 따라옴.
+#
+#       defaults 는 wesep/utils/utils.py 의 load_config_with_base() 가 hydra 의 Compose API
+#       로 합성함. 이름은 확장자 없이 적고 같은 폴더의 yaml 을 가리킴.
+#       `- _self_` 가 마지막이라 이 파일의 키가 부모를 덮어씀 — 순서를 뒤집으면 반대가 됨.
+#       stage 3 이 exp_dir/config.yaml 로 저장할 때는 이미 합성·해석이 끝난 판이 나가므로
+#       stage 5 (infer.py) 가 그것을 그대로 읽어도 됨.
+
+defaults:
+  - bsrnn_ecapa_FiLM_spkeval
+  - _self_
+
+exp_dir: exp/BSRNN_sdfilm
+
+model_args:
+  tse_model:
+    spk_fuse_type: 'sdfilm'
+    # 토큰 축은 밴드x시간 — 조건화 파라미터가 FiLM 의 2.7배(135,712 대 49,408).
+    # 시간축으로 잡으면 26배가 되어 "FiLM 보다 파라미터를 줄인다" 는 주장과 충돌함.
+    # q_dim 은 여기 적지 않음 — feature_dim(128) 에서 유도하고, 적으면 ValueError 로 막힘.
+    spk_fuse_kwargs:
+      k_dim: 512              # ECAPA_TDNN_GLOB_c512 의 프레임 특징 채널. 인코더를 바꾸면 같이 고칠 것
+      v_dim: 512
+      num_q_heads: 12
+      num_kv_heads: 12
+      qk_head_dim: 8
+      v_head_dim: 8
+      cond_variant: 'sdfilm_mhca_shared'

@@ -26,6 +26,8 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import yaml
+from hydra import compose, initialize_config_dir
+from omegaconf import OmegaConf
 
 
 def str2bool(value: str) -> bool:
@@ -76,14 +78,37 @@ def setup_logger(rank, exp_dir, device_ids, MAX_NUM_LOG_FILES: int = 100):
     return get_logger(exp_dir, file_name)
 
 
+def load_config_with_base(config_file):
+    """hydra 의 defaults 리스트까지 합성한 config 를 순수 dict 으로 돌려준다 (#83).
+
+    SD-FiLM 저장소(src/train.py)는 @hydra.main 으로 진입점 자체를 hydra 에 넘기지만,
+    여기서는 Compose API 만 쓴다 - wesep 의 진입점은 fire.Fire(train) 이고 run.sh 가
+    `--config <경로>` 로 부르므로, @hydra.main 을 쓰면 CLI 문법이 key=value 로 바뀌고
+    torchrun 의 rank 마다 outputs/ 를 만들며 cwd 까지 옮긴다. compose 는 그 셋을 건드리지
+    않고 defaults 합성만 가져온다.
+
+    defaults 에 적는 이름은 확장자 없는 파일 이름이고, 같은 폴더의 yaml 을 가리킨다.
+    `- _self_` 를 마지막에 두어야 이 파일의 키가 부모를 덮어쓴다.
+    resolve=True 로 ${...} 보간까지 풀어 돌려주므로 호출부는 dict 그대로 쓰면 된다.
+    defaults 가 없는 기존 config 13벌은 yaml.load 결과와 완전히 같음을 실측했다.
+    """
+    path = os.path.abspath(config_file)          # initialize_config_dir 은 절대 경로만 받는다
+    config_dir = os.path.dirname(path)           # 예: <...>/tse/v2/confs
+    file_name = os.path.basename(path)           # 예: bsrnn_ecapa_sdfilm.yaml
+    config_name, _ext = os.path.splitext(file_name)   # 예: bsrnn_ecapa_sdfilm
+    # config_name 에 확장자를 붙이면 hydra 가 <이름>.yaml.yaml 을 찾아 실패한다.
+    with initialize_config_dir(config_dir=config_dir, version_base=None):
+        cfg = compose(config_name=config_name)
+    return OmegaConf.to_container(cfg, resolve=True)
+
+
 def parse_config_or_kwargs(config_file, **kwargs):
     """parse_config_or_kwargs
 
     :param config_file: Config file that has parameters, yaml format
     :param **kwargs: Other alternative parameters or overwrites for conf
     """
-    with open(config_file) as con_read:
-        yaml_config = yaml.load(con_read, Loader=yaml.FullLoader)
+    yaml_config = load_config_with_base(config_file)
     # values from conf file are all possible params
     help_str = "Valid Parameters are:\n"
     help_str += "\n".join(list(yaml_config.keys()))
