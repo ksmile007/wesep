@@ -290,7 +290,7 @@ CUDA_VISIBLE_DEVICES=0 bash run.sh --stage 4 --stop-stage 6 \
 
 | stage | 하는 일 | 시간 |
 |---|---|---|
-| 4 | 체크포인트 여러 개를 평균해 `avg_best_model.pt` 생성 | 1분 |
+| 4 | 체크포인트 여러 개를 평균해 `avg_ep138+141.pt` 꼴로 생성 | 1분 |
 | 5 | test 셋 추론 — 분리 음원과 발화별 점수 | 25분 |
 | 6 | 채점 — SI-SNRi · PESQ · STOI · DNSMOS | 10분 |
 
@@ -405,7 +405,8 @@ exp/bsrnn_ecapa_FiLM/
 ├── models/
 │   ├── checkpoint_<N>.pt          epoch 별 체크포인트 (마지막 20개 보존)
 │   ├── latest_checkpoint.pt  ->   가장 최근 것 (재개할 때 자동으로 읽음)
-│   └── avg_best_model.pt          stage 4 가 만든 평균 모델
+│   └── avg_ep138+141.pt           stage 4 가 만든 평균 모델. 이름이 평균한 epoch 을 말함
+│                                  (10개 이상이면 avg_n10_ep141~150.pt 꼴)
 ├── infer_utt_scores.csv           발화별 SI-SNR·SI-SNRi 원값
 └── scoring/                       PESQ · STOI · DNSMOS
 ```

@@ -152,7 +152,11 @@ fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   echo "Do model average ..."
-  avg_model=$exp_dir/models/avg_best_model.pt
+  # <<<<< 고친 것 - 이름을 avg_best_model.pt 로 고정하지 않음 (#96).
+  #       고정 이름은 한 run 에 평균 ckpt 를 하나밖에 못 두게 해 여러 조합을 비교할 수 없었고,
+  #       `best` 는 avg_mode=final 일 때 거짓말이었음. 이제 average_model.py 가
+  #       평균한 epoch 으로 이름을 짓고(avg_ep138+141.pt · avg_n10_ep141~150.pt)
+  #       마지막 줄에 그 경로를 찍으므로 그것을 받아 씀
   avg_opts=(--mode "${avg_mode}")
   # <<<<< 고친 것 - best 모드면 평균할 개수를 avg_epochs 에서 세어 num_avg 를 덮어씀.
   #       average_model.py 는 best 일 때 avg_epochs 로 목록을 정하고 num 은 개수 검사에만 씀 —
@@ -161,14 +165,30 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     avg_opts+=(--epochs "${avg_epochs}")
     num_avg=$(awk -F',' '{print NF}' <<<"${avg_epochs}")
   fi
-  python wesep/bin/average_model.py \
-    --dst_model $avg_model \
+  avg_model=$(python wesep/bin/average_model.py \
+    --dst_dir $exp_dir/models \
     --src_path $exp_dir/models \
     --num ${num_avg} \
-    "${avg_opts[@]}"
+    "${avg_opts[@]}" | tail -n 1)
+  echo "Averaged checkpoint: ${avg_model}"
 fi
-if [ -z "${checkpoint}" ] && [ -f "${exp_dir}/models/avg_best_model.pt" ]; then
-  checkpoint="${exp_dir}/models/avg_best_model.pt"
+# <<<<< 고친 것 - 자동 선택을 없앰 (#96). 원본은 checkpoint 가 비면 avg_best_model.pt 를
+#       몰래 골랐는데, 평균 ckpt 가 여러 개가 된 지금은 무엇으로 돌았는지 다시 알 수 없게 됨.
+#       stage 4 를 방금 돌렸으면 그 결과를 쓰고, 아니면 --checkpoint 를 명시할 것
+if [ -z "${checkpoint}" ] && [ -n "${avg_model}" ]; then
+  checkpoint="${avg_model}"
+fi
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && [ -z "${checkpoint}" ]; then
+  echo "stage 5 에는 --checkpoint 가 필요함. stage 4 를 같이 돌리거나 경로를 명시할 것." >&2
+  echo "  예: ./run.sh --stage 5 --stop_stage 6 --checkpoint ${exp_dir}/models/avg_ep150.pt" >&2
+  exit 1
+fi
+# <<<<< 더한 것 - stage 5·6 의 산출물이 놓이는 곳 (#96). infer.py 가 같은 규칙으로 만들고
+#       stage 6 은 그 폴더를 exp_dir 삼아 scoring/ 을 그 아래에 둠 - 그래야 ckpt 를 바꿔
+#       다시 돌려도 앞 결과가 안 덮임. RESULTS.md 는 score.sh 가 두 단계 위에 쓰므로
+#       ${exp_dir}/infer/RESULTS.md 가 되어 ckpt 들이 행으로 나란히 놓임
+if [ -n "${checkpoint}" ]; then
+  infer_dir="${exp_dir}/infer/$(basename "${checkpoint}" .pt)"
 fi
 
 
@@ -201,12 +221,12 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     # 안 그러면 score.py:120 의 assert inf_reader.keys() == ref_reader.keys() 에서 죽음
     score_dset=${exp_dir}/test_debug_dset
     mkdir -p ${score_dset}
-    awk 'NR==FNR{k[$1];next} ($1 in k)' ${exp_dir}/audio/spk1.scp \
+    awk 'NR==FNR{k[$1];next} ($1 in k)' ${infer_dir}/audio/spk1.scp \
         ${data}/test/single.wav.scp >${score_dset}/single.wav.scp
     echo "Debug mode: score_dset=${score_dset} ($(wc -l <${score_dset}/single.wav.scp) 발화)"
   fi
   ./tools/score.sh --dset "${score_dset}" \
-    --exp_dir "${exp_dir}" \
+    --exp_dir "${infer_dir}" \
     --fs ${fs} \
     --use_pesq "${use_pesq}" \
     --use_dnsmos "${use_dnsmos}" \

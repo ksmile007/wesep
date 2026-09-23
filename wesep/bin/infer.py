@@ -64,12 +64,23 @@ def infer(config="confs/conf.yaml", **kwargs):
     model_path = os.path.join(configs["checkpoint"])
     load_pretrained_model(model, model_path)
 
-    logger = get_logger(configs["exp_dir"], "infer.log")
+    # <<<<< 더한 것 - 산출물을 ckpt 별 폴더로 내림 (#96).
+    #       원본은 audio/ · infer_utt_scores.csv · infer.log 를 exp_dir 바로 아래 뒀는데,
+    #       그러면 같은 run 을 다른 ckpt 로 다시 추론할 때 앞 결과가 **통째로 덮어써져**
+    #       ckpt 끼리 비교할 수가 없었음(934M 짜리 audio/ 까지 같이 날아감).
+    #       stage 6 의 scoring/ 도 여기로 따라오도록 run.sh 가 이 경로를 넘김.
+    #       기존 4 run 의 산출물은 옛 자리에 그대로 있으므로 집계 쪽이 둘 다 읽어야 함.
+    out_dir = os.path.join(configs["exp_dir"], "infer",
+                           os.path.splitext(os.path.basename(model_path))[0])
+    os.makedirs(out_dir, exist_ok=True)
+
+    logger = get_logger(out_dir, "infer.log")
+    logger.info(f"Results dir: {out_dir}")
     logger.info("Load checkpoint from {}".format(model_path))
     # <<<<< 더한 것 - 학습 때와 같은 표를 추론 로그에도 남김 (#95). 원본 infer.py 는
     #       파라미터 수를 전혀 안 찍어, 어느 설정의 ckpt 인지 로그만 보고는 알 수 없었음
     logger.info(f"\n{pd.DataFrame(count_params(model)).to_string(index=False)}")
-    save_audio_dir = os.path.join(configs["exp_dir"], "audio")
+    save_audio_dir = os.path.join(out_dir, "audio")
     if sign_save_wav:
         if not os.path.exists(save_audio_dir):
             try:
@@ -211,7 +222,7 @@ def infer(config="confs/conf.yaml", **kwargs):
         generate_enahnced_scp(os.path.abspath(save_audio_dir), extension="wav")
 
     # <<<<< 더한 것 - 발화별 SI-SNR·SI-SNRi 원값. stage 6 의 scoring/ 에는 SI-SNRi 가 없음
-    utt_csv = os.path.join(configs["exp_dir"], "infer_utt_scores.csv")
+    utt_csv = os.path.join(out_dir, "infer_utt_scores.csv")
     pd.DataFrame(utt_rows).to_csv(utt_csv, index=False)
     logger.info("Per-utterance scores saved to {}".format(utt_csv))
 
