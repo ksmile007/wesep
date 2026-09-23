@@ -282,14 +282,14 @@ def get_layer(l_name, library=torch.nn):
         close_matches = difflib.get_close_matches(
             l_name, [x.lower() for x in all_torch_layers])
         raise NotImplementedError(
-            "Layer with name {} not found in {}.\n Closest matches: {}".format(
-                l_name, str(library), close_matches))
+            f"Layer with name {l_name} not found in {str(library)}.\n "
+            f"Closest matches: {close_matches}")
     elif len(match) > 1:
         close_matches = difflib.get_close_matches(
             l_name, [x.lower() for x in all_torch_layers])
         raise NotImplementedError(
-            "Multiple matchs for layer with name {} not found in {}.\n "
-            "All matches: {}".format(l_name, str(library), close_matches))
+            f"Multiple matchs for layer with name {l_name} not found in {str(library)}.\n "
+            f"All matches: {close_matches}")
     else:
         # valid
         layer_handler = getattr(library, match[0])

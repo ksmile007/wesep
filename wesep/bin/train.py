@@ -79,10 +79,10 @@ def train(config="conf/config.yaml", **kwargs):
 
     print("-------------------", dist.get_rank(), world_size)
     if world_size > 1:
-        logger.info("training on multiple gpus, this gpu {}".format(gpu))
+        logger.info(f"training on multiple gpus, this gpu {gpu}")
 
     if rank == 0:
-        logger.info("exp_dir is: {}".format(configs["exp_dir"]))
+        logger.info(f"exp_dir is: {configs['exp_dir']}")
         logger.info("<== Passed Arguments ==>")
         # Print arguments into logs
         for line in pformat(configs).split("\n"):
@@ -211,8 +211,8 @@ def train(config="conf/config.yaml", **kwargs):
     if rank == 0:
         logger.info("<== Dataloaders ==>")
         logger.info("train dataloaders created")
-        logger.info("epoch iteration number: {}".format(epoch_iter))
-        logger.info("val iteration number: {}".format(val_iter))
+        logger.info(f"epoch iteration number: {epoch_iter}")
+        logger.info(f"val iteration number: {val_iter}")
 
     # model
     model_list = []
@@ -232,7 +232,7 @@ def train(config="conf/config.yaml", **kwargs):
     num_params = next(row["params"] for row in param_rows if row["group"] == "total")
 
     if rank == 0:
-        logger.info("tse_model size: {:.2f} M".format(num_params / 1e6))
+        logger.info(f"tse_model size: {num_params / 1e6:.2f} M")
         logger.info(f"\n{pd.DataFrame(param_rows).to_string(index=False)}")
         # print model
         for line in pformat(model).split("\n"):
@@ -280,8 +280,8 @@ def train(config="conf/config.yaml", **kwargs):
         logger.info("scheduler is: " + configs["scheduler"]["tse_model"])
 
     if configs["model_init"]["tse_model"] is not None:
-        logger.info("Load initial model from {}".format(
-            configs["model_init"]["tse_model"]))
+        logger.info(
+            f"Load initial model from {configs['model_init']['tse_model']}")
         load_pretrained_model(ddp_model, configs["model_init"]["tse_model"])
     elif checkpoint is None:
         logger.info("Train model from scratch ...")
@@ -320,7 +320,7 @@ def train(config="conf/config.yaml", **kwargs):
                     f"val_loss={ckpt_info['val_loss']})")
     else:
         start_epoch = 1
-    logger.info("start_epoch: {}".format(start_epoch))
+    logger.info(f"start_epoch: {start_epoch}")
 
     # save config.yaml
     if rank == 0:
@@ -395,10 +395,8 @@ def train(config="conf/config.yaml", **kwargs):
         )
 
         if rank == 0:
-            logger.info("Epoch {} Train info train_loss {}".format(
-                epoch, train_loss))
-            logger.info("Epoch {} Val info val_loss {}".format(
-                epoch, val_loss))
+            logger.info(f"Epoch {epoch} Train info train_loss {train_loss}")
+            logger.info(f"Epoch {epoch} Val info val_loss {val_loss}")
             train_losses.append(train_loss)
             val_losses.append(val_loss)
 
@@ -442,7 +440,7 @@ def train(config="conf/config.yaml", **kwargs):
                     optimizer_list,
                     scheduler_list,
                     scaler,
-                    os.path.join(model_dir, "checkpoint_{}.pt".format(epoch)),
+                    os.path.join(model_dir, f"checkpoint_{epoch}.pt"),
                     # <<<<< 더한 것 - 이 판이 어느 시점의 것인지를 파일 안에 남김.
                     #       global_step 은 train() 이 executor 에 두고 간 값임
                     epoch=epoch,
@@ -452,19 +450,19 @@ def train(config="conf/config.yaml", **kwargs):
                 )
                 try:
                     os.symlink(
-                        "checkpoint_{}.pt".format(epoch),
+                        f"checkpoint_{epoch}.pt",
                         os.path.join(model_dir, "latest_checkpoint.pt"),
                     )
                 except FileExistsError:
                     os.remove(os.path.join(model_dir, "latest_checkpoint.pt"))
                     os.symlink(
-                        "checkpoint_{}.pt".format(epoch),
+                        f"checkpoint_{epoch}.pt",
                         os.path.join(model_dir, "latest_checkpoint.pt"),
                     )
 
     if rank == 0:
         os.symlink(
-            "checkpoint_{}.pt".format(configs["num_epochs"]),
+            f"checkpoint_{configs['num_epochs']}.pt",
             os.path.join(model_dir, "final_checkpoint.pt"),
         )
         logger.info(tp.bottom(len(header), width=10, style="grid"))

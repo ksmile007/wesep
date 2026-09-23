@@ -48,7 +48,7 @@ def infer(config="confs/conf.yaml", **kwargs):
     rank = 0
     set_seed(configs["seed"] + rank)
     gpu = configs["gpus"]
-    device = (torch.device("cuda:{}".format(gpu))
+    device = (torch.device(f"cuda:{gpu}")
               if gpu >= 0 else torch.device("cpu"))
 
     sample_rate = configs.get("fs", None)
@@ -76,7 +76,7 @@ def infer(config="confs/conf.yaml", **kwargs):
 
     logger = get_logger(out_dir, "infer.log")
     logger.info(f"Results dir: {out_dir}")
-    logger.info("Load checkpoint from {}".format(model_path))
+    logger.info(f"Load checkpoint from {model_path}")
     # <<<<< 더한 것 - 학습 때와 같은 표를 추론 로그에도 남김 (#95). 원본 infer.py 는
     #       파라미터 수를 전혀 안 찍어, 어느 설정의 ckpt 인지 로그만 보고는 알 수 없었음
     logger.info(f"\n{pd.DataFrame(count_params(model)).to_string(index=False)}")
@@ -127,7 +127,7 @@ def infer(config="confs/conf.yaml", **kwargs):
                                  batch_size=1,
                                  collate_fn=tse_collate_fn_2spk)
     test_iter = lines // 2
-    logger.info("test number: {}".format(test_iter))
+    logger.info(f"test number: {test_iter}")
 
     with torch.no_grad():
         # <<<<< 고친 것 - 추론 진행 막대. test_iter 는 전체 기준이라
@@ -183,8 +183,8 @@ def infer(config="confs/conf.yaml", **kwargs):
                 SISNR1, delta1 = cal_SISNRi(ests[0], ref[0], mix[0])
 
             logger.info(
-                "Num={} | Utt={} | Target speaker={} | SI-SNR={:.2f} | SI-SNRi={:.2f}"
-                .format(total_cnt + 1, key[0], spk[0], SISNR1, delta1))
+                f"Num={total_cnt + 1} | Utt={key[0]} | Target speaker={spk[0]} | "
+                f"SI-SNR={SISNR1:.2f} | SI-SNRi={delta1:.2f}")
             # <<<<< 더한 것
             utt_rows.append({"key": key[0], "spk": spk[0],
                              "si_snr": SISNR1, "si_snri": delta1})
@@ -203,8 +203,8 @@ def infer(config="confs/conf.yaml", **kwargs):
             else:
                 SISNR2, delta2 = cal_SISNRi(ests[1], ref[1], mix[1])
             logger.info(
-                "Num={} | Utt={} | Target speaker={} | SI-SNR={:.2f} | SI-SNRi={:.2f}"
-                .format(total_cnt + 1, key[1], spk[1], SISNR2, delta2))
+                f"Num={total_cnt + 1} | Utt={key[1]} | Target speaker={spk[1]} | "
+                f"SI-SNR={SISNR2:.2f} | SI-SNRi={delta2:.2f}")
             # <<<<< 더한 것
             utt_rows.append({"key": key[1], "spk": spk[1],
                              "si_snr": SISNR2, "si_snri": delta2})
@@ -224,14 +224,14 @@ def infer(config="confs/conf.yaml", **kwargs):
     # <<<<< 더한 것 - 발화별 SI-SNR·SI-SNRi 원값. stage 6 의 scoring/ 에는 SI-SNRi 가 없음
     utt_csv = os.path.join(out_dir, "infer_utt_scores.csv")
     pd.DataFrame(utt_rows).to_csv(utt_csv, index=False)
-    logger.info("Per-utterance scores saved to {}".format(utt_csv))
+    logger.info(f"Per-utterance scores saved to {utt_csv}")
 
-    logger.info("Time Elapsed: {:.1f}s".format(end - start))
-    logger.info("Average SI-SNR: {:.2f}".format(total_SISNR / total_cnt))
-    logger.info("Average SI-SNRi: {:.2f}".format(total_SISNRi / total_cnt))
+    logger.info(f"Time Elapsed: {end - start:.1f}s")
+    logger.info(f"Average SI-SNR: {total_SISNR / total_cnt:.2f}")
+    logger.info(f"Average SI-SNRi: {total_SISNRi / total_cnt:.2f}")
     logger.info(
-        "Acceptance rate of Utterances with SI-SDRi > 1 dB: {:.2f}".format(
-            accept_cnt / total_cnt * 100))
+        "Acceptance rate of Utterances with SI-SDRi > 1 dB: "
+        f"{accept_cnt / total_cnt * 100:.2f}")
 
 
 if __name__ == "__main__":
