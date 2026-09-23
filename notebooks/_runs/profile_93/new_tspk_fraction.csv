@@ -1,0 +1,13 @@
+run,steps,new_t_spk_pct
+sdfilm-base,0-99,82.0
+sdfilm-base,100-199,52.0
+sdfilm-base,200-299,47.0
+sdfilm-exp,0-99,82.0
+sdfilm-exp,100-199,52.0
+sdfilm-exp,200-299,47.0
+film-base,0-99,79.0
+film-base,100-199,57.0
+film-base,200-299,33.0
+film-exp,0-99,79.0
+film-exp,100-199,57.0
+film-exp,200-299,33.0

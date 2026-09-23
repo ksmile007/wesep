@@ -1,0 +1,5 @@
+run,steps,num_alloc_retries,num_ooms,num_sync_all_streams,num_device_alloc,num_device_free,reserved_peak_gib,allocated_peak_gib,t_spk_distinct,t_spk_range
+sdfilm-base,300,0,0,1483,8956,8738,21.46,19.6,181,299~928
+sdfilm-exp,300,0,0,1483,12911,2773,21.61,19.6,181,299~928
+film-base,300,0,0,1387,7824,7608,21.38,19.41,169,298~1068
+film-exp,300,0,0,1387,11435,2239,21.42,19.41,169,298~1068

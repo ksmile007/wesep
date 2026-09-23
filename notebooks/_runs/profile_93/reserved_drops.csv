@@ -1,0 +1,17 @@
+run,reserved_before_gib,reserved_after_gib,innermost_op
+sdfilm-base,21.46,1.87,aten::cudnn_convolution
+sdfilm-base,20.9,1.87,aten::cudnn_convolution
+sdfilm-base,20.9,1.93,aten::cudnn_convolution
+sdfilm-base,21.46,1.87,aten::cudnn_convolution
+sdfilm-base,20.9,1.87,aten::cudnn_convolution
+sdfilm-base,20.9,1.93,aten::cudnn_convolution
+sdfilm-base,21.46,1.93,aten::cudnn_convolution
+sdfilm-base,21.46,1.93,aten::cudnn_convolution
+sdfilm-base,21.46,1.94,aten::cudnn_convolution
+film-base,21.38,3.27,aten::cudnn_convolution
+film-base,20.02,3.28,aten::cudnn_convolution
+film-base,20.02,3.26,aten::cudnn_convolution
+film-base,20.02,3.27,aten::cudnn_convolution
+film-base,20.07,3.27,aten::cudnn_convolution
+film-base,20.07,3.27,aten::cudnn_convolution
+film-base,20.07,3.27,aten::cudnn_convolution

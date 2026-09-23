@@ -1,0 +1,5 @@
+run,t_spk,steps,step_ms,1_to_device_idle_ms,2_forward_loss_idle_ms,3_loss_item_idle_ms,4_backward_idle_ms,5_clip_idle_ms,6_opt_step_idle_ms
+sdfilm-base,new,9,939.2,2.3,348.8,0.1,33.9,78.7,28.7
+sdfilm-base,seen,1,590.8,1.4,42.0,0.1,32.2,75.3,20.9
+film-base,seen,3,564.8,3.2,23.2,0.1,33.8,80.0,11.5
+film-base,new,7,940.4,2.3,360.4,0.1,35.0,84.3,21.8

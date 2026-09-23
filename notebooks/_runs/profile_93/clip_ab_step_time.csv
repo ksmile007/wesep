@@ -1,0 +1,7 @@
+target,baseline,same_t_spk_order,t_spk,steps,baseline_ms_median,target_ms_median,paired_diff_ms_median,paired_diff_ms_mean,target_faster_pct
+sdfilm-nosync,sdfilm-loop,True,seen,96,529.1,540.2,11.7,13.3,22.9
+sdfilm-nosync,sdfilm-loop,True,new,84,932.2,939.9,0.5,7.5,48.8
+sdfilm-foreach,sdfilm-loop,True,seen,96,529.1,521.4,-7.8,-7.1,69.8
+sdfilm-foreach,sdfilm-loop,True,new,84,932.2,919.7,-5.4,-12.5,51.2
+film-foreach,film-loop,True,seen,104,518.7,508.7,-11.1,-9.8,77.9
+film-foreach,film-loop,True,new,76,846.2,883.0,17.3,40.8,39.5

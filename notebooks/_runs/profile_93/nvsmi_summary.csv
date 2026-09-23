@@ -1,0 +1,5 @@
+run,gpu,window_s,samples,gpu_util_mean,gpu_util_lt30_pct,gpu_util_ge90_pct,mem_min_mib,mem_max_mib,drops_gt_10gib
+sdfilm-base,0,431.4,4011,43.0,51.4,30.9,1,22798,173
+sdfilm-exp,1,703.4,6680,31.2,54.6,9.1,1,22950,1
+film-base,2,571.0,5379,29.6,66.2,20.3,1,22714,153
+film-exp,3,671.9,6373,31.2,55.8,10.6,1,22750,1

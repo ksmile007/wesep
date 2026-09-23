@@ -1,0 +1,6 @@
+run,clip_cpu_ms,clip_gpu_idle_ms,syncs_per_step,launches_per_step
+sdfilm-loop,119.8,83.1,1072.0,2689.0
+sdfilm-nosync,122.6,85.0,0.0,4297.0
+sdfilm-foreach,99.0,62.3,0.0,3769.0
+film-loop,113.6,83.0,1064.0,2669.0
+film-foreach,88.4,61.2,0.0,3741.0

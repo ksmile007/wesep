@@ -13,7 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import csv
+import json
 import os
+import sys
+import time
 from contextlib import nullcontext
 
 import tableprint as tp
@@ -24,11 +28,79 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 import torch
 # <<<<< 더한 것 - 에포크 손실을 rank 끼리 합치는 데 씀
 import torch.distributed as dist
+# <<<<< 더한 것 - #93 조사용 프로파일러 (StepProfiler)
+from torch.profiler import ProfilerActivity, profile, record_function, schedule
 
 from wesep.utils.funcs import clip_gradients, compute_fbank, apply_cmvn
 # <<<<< 더한 것 - CSV·텐서보드·wandb 기록을 맡는 클래스
 from wesep.utils.tracker import Tracker
 import random
+
+
+# <<<<< 더한 것 - #93 GPU 유휴·메모리 출렁임 조사용. WESEP_PROFILE=1 일 때만 만들어지고
+#       기본은 None 이라 학습 동작이 바뀌지 않음. 판정 기준은 docs/issues/wesep_gpu_mem_flush_and_idle.md
+class StepProfiler:
+    """안정된 스텝 구간을 torch.profiler 로 기록하고, 스텝마다 할당기 통계를 CSV 로 남긴 뒤 종료함.
+
+    WESEP_PROFILE_DIR   : 결과를 둘 폴더 (필수)
+    WESEP_PROFILE_STEPS : 이 스텝 수에서 파일을 쓰고 프로세스를 끝냄 (기본 300). 체크포인트는 안 남김
+    """
+
+    @classmethod
+    def from_env(cls, device):
+        if os.environ.get("WESEP_PROFILE") != "1":
+            return None
+        return cls(device, os.environ["WESEP_PROFILE_DIR"],
+                   int(os.environ.get("WESEP_PROFILE_STEPS", "300")))
+
+    def __init__(self, device, out_dir, stop_step, wait=100, warmup=5, active=10):
+        os.makedirs(out_dir, exist_ok=True)
+        self.device, self.out_dir, self.stop_step = device, out_dir, stop_step
+        self.rows = []
+        self.t_last = time.perf_counter()
+        # wait=100 — 컴파일·재컴파일·캐시 채우기가 끝난 스텝만 trace 에 담음
+        self.prof = profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+                            schedule=schedule(wait=wait, warmup=warmup, active=active, repeat=1),
+                            on_trace_ready=self._dump_trace, profile_memory=True)
+        self.prof.start()
+
+    @staticmethod
+    def region(name):
+        return record_function(name)
+
+    def _dump_trace(self, prof):
+        prof.export_chrome_trace(os.path.join(self.out_dir, "trace.json"))
+        with open(os.path.join(self.out_dir, "key_averages.txt"), "w") as f:
+            f.write(prof.key_averages().table(sort_by="cuda_time_total", row_limit=80))
+
+    def step(self, i, enroll, features):
+        # 할당기 통계는 CPU 쪽 카운터라 GPU 동기화를 일으키지 않음
+        st = torch.cuda.memory_stats(self.device)
+        now = time.perf_counter()
+        self.rows.append({
+            "step": i,
+            "wall_s": now - self.t_last,           # 직전 스텝 끝 → 이번 스텝 끝 (dataloader 대기 포함)
+            "t_spk": enroll.shape[1],              # enrollment 길이 — 배치마다 다름
+            "t_mix": features.shape[-1],
+            "allocated_mib": st["allocated_bytes.all.current"] / 2**20,
+            "reserved_mib": st["reserved_bytes.all.current"] / 2**20,
+            "inactive_split_mib": st["inactive_split_bytes.all.current"] / 2**20,
+            "num_alloc_retries": st["num_alloc_retries"],   # cudaMalloc 실패 → 캐시 비움 → 재시도 횟수
+            "num_device_alloc": st.get("num_device_alloc", -1),
+            "num_device_free": st.get("num_device_free", -1),
+        })
+        self.t_last = now
+        self.prof.step()
+        if i + 1 >= self.stop_step:
+            self.prof.stop()
+            with open(os.path.join(self.out_dir, "memory.csv"), "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=list(self.rows[0].keys()))
+                writer.writeheader()
+                writer.writerows(self.rows)
+            with open(os.path.join(self.out_dir, "memory_stats_final.json"), "w") as f:
+                json.dump(torch.cuda.memory_stats(self.device), f, indent=1)
+            print(f"[StepProfiler] {i + 1} 스텝에서 종료 — {self.out_dir}", flush=True)
+            sys.exit(0)
 
 
 class Executor:
@@ -106,6 +178,9 @@ class Executor:
         #       배치 평균이 아니라 **샘플 수로 가중**해 더함 - 마지막 배치가 작아도 맞음
         total_loss = 0.0
         n_samples = 0
+        # <<<<< 더한 것 - #93 조사용. WESEP_PROFILE=1 이 아니면 None 이고 rf 는 빈 컨텍스트라 동작 불변
+        profiler = StepProfiler.from_env(device)
+        rf = StepProfiler.region if profiler else (lambda name: nullcontext())
 
         if isinstance(model, torch.nn.parallel.DistributedDataParallel):
             model_context = model.join
@@ -131,15 +206,17 @@ class Executor:
                 cur_iter = (epoch - 1) * epoch_iter + i
                 scheduler.step(cur_iter)
 
-                features = features.float().to(device)  # (B,T,F)
-                targets = targets.float().to(device)
-                enroll = enroll.float().to(device)
-                spk_label = spk_label.to(device)
+                with rf("1_to_device"):   # <<<<< 더한 것 - #93 단계 이름
+                    features = features.float().to(device)  # (B,T,F)
+                    targets = targets.float().to(device)
+                    enroll = enroll.float().to(device)
+                    spk_label = spk_label.to(device)
 
                 # <<<<< 고친 것 - torch.cuda.amp.* 가 FutureWarning 을 냄. torch.amp.* 로 옮김.
                 #       두 API 는 같은 구현임 (torch.cuda.amp 쪽이 torch.amp 를 상속해 super() 를 부름).
                 #       device_type 은 위에서 이미 정해 둔 device 를 그대로 씀 - cpu 로 돌려도 깨지지 않게
-                with torch.amp.autocast(device.type, enabled=enable_amp, dtype=amp_dtype):
+                with rf("2_forward_loss"), \
+                        torch.amp.autocast(device.type, enabled=enable_amp, dtype=amp_dtype):
                     if SSA_enroll_prob > 0:
                         if SSA_enroll_prob > random.random():
                             with torch.no_grad():
@@ -178,7 +255,8 @@ class Executor:
                 # targets 의 0번 축이 criterion 이 평균낸 샘플 수임
                 # (tse_collate_fn 이 혼합 하나를 화자 수만큼 늘려 놓은 뒤의 값)
                 n_batch = targets.shape[0]
-                losses.append(loss.item())
+                with rf("3_loss_item"):   # <<<<< 더한 것 - #93. 앞 forward 의 GPU 작업을 여기서 기다림
+                    losses.append(loss.item())
                 total_loss += losses[-1] * n_batch
                 n_samples += n_batch
                 total_loss_avg = total_loss / n_samples
@@ -205,13 +283,18 @@ class Executor:
                 })
 
                 # updata the model
-                optimizer.zero_grad()
-                # scaler does nothing here if enable_amp=False
-                scaler.scale(loss).backward()
-                scaler.unscale_(optimizer)
-                clip_gradients(model, clip_grad)
-                scaler.step(optimizer)
-                scaler.update()
+                with rf("4_backward"):    # <<<<< 더한 것 - #93 단계 이름 (4~6)
+                    optimizer.zero_grad()
+                    # scaler does nothing here if enable_amp=False
+                    scaler.scale(loss).backward()
+                with rf("5_clip"):
+                    scaler.unscale_(optimizer)
+                    clip_gradients(model, clip_grad)
+                with rf("6_opt_step"):
+                    scaler.step(optimizer)
+                    scaler.update()
+                if profiler:
+                    profiler.step(i, enroll, features)
 
                 if (i + 1) % log_interval == 0:
                     logger.info(

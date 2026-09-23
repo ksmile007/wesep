@@ -1,0 +1,9 @@
+run,t_spk,steps,step_ms_median,step_ms_mean
+sdfilm-base,seen,101,518.4,520.8
+sdfilm-base,new,99,898.6,2076.0
+sdfilm-exp,seen,101,522.1,526.0
+sdfilm-exp,new,99,1616.3,2990.6
+film-base,seen,110,519.4,523.6
+film-base,new,90,853.5,2789.0
+film-exp,seen,110,506.8,513.9
+film-exp,new,90,1587.1,2998.7
