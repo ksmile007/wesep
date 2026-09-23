@@ -47,6 +47,9 @@ def infer(config="confs/conf.yaml", **kwargs):
 
     rank = 0
     set_seed(configs["seed"] + rank)
+    # <<<<< 더한 것 - 평가만 cudnn.benchmark 를 끔 (#94). 발화마다 길이가 달라 커널을 매번 다시 골라
+    #       재실행마다 결과가 흔들렸음. 학습은 set_seed() 의 True 를 그대로 씀
+    torch.backends.cudnn.benchmark = False
     gpu = configs["gpus"]
     device = (torch.device(f"cuda:{gpu}")
               if gpu >= 0 else torch.device("cpu"))
