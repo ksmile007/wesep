@@ -48,6 +48,16 @@ def get_logger(outdir, fname):
     #       위 basicConfig 의 DEBUG 는 원본 그대로 두고 이 로거만 올림
     logging.getLogger("fsspec.local").setLevel(logging.WARNING)
     logger = logging.getLogger("Pyobj, f")
+    # <<<<< 더한 것 - 이 로거의 레벨을 직접 박음. 위 basicConfig 에만 기대면 infer.log 가 빈다 (#97).
+    #       infer.py 는 @logging_redirect_tqdm() 로 감싼 함수 안에서 이 함수를 부르는데,
+    #       그 컨텍스트가 본문보다 먼저 들어가 root 에 _TqdmLoggingHandler 를 꽂는다.
+    #       basicConfig 는 root 에 핸들러가 이미 있으면 **아무것도 안 하므로**(force 기본 False)
+    #       level=DEBUG 도 안 먹고 root 가 기본값 WARNING 으로 남는다. 이 로거는 NOTSET 이라
+    #       유효 레벨이 root 를 따라 WARNING 이 되어 logger.info() 가 전부 걸러졌다 -
+    #       기존 4 run 의 infer.log 가 전부 0 바이트인 원인임(실측).
+    #       force=True 로 basicConfig 를 다시 부르면 tqdm 핸들러가 날아가 막대 겹침이 되돌아온다.
+    #       root 를 건드리지 않고 이 로거만 올리는 것이 가장 좁은 고침임.
+    logger.setLevel(logging.DEBUG)
     # Dump log to file
     fh = logging.FileHandler(os.path.join(outdir, fname))
     fh.setFormatter(formatter)
