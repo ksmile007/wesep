@@ -15,6 +15,7 @@ from wesep.dataset.dataset import Dataset, tse_collate_fn_2spk
 from wesep.models import get_model
 from wesep.utils.checkpoint import load_pretrained_model
 from wesep.utils.file_utils import read_label_file, read_vec_scp_file
+from wesep.utils.param_summary import count_params   # <<<<< 더한 것 (#95)
 from wesep.utils.score import cal_SISNRi
 from wesep.utils.utils import (
     generate_enahnced_scp,
@@ -65,6 +66,9 @@ def infer(config="confs/conf.yaml", **kwargs):
 
     logger = get_logger(configs["exp_dir"], "infer.log")
     logger.info("Load checkpoint from {}".format(model_path))
+    # <<<<< 더한 것 - 학습 때와 같은 표를 추론 로그에도 남김 (#95). 원본 infer.py 는
+    #       파라미터 수를 전혀 안 찍어, 어느 설정의 ckpt 인지 로그만 보고는 알 수 없었음
+    logger.info(f"\n{pd.DataFrame(count_params(model)).to_string(index=False)}")
     save_audio_dir = os.path.join(configs["exp_dir"], "audio")
     if sign_save_wav:
         if not os.path.exists(save_audio_dir):

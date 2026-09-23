@@ -141,6 +141,22 @@ class Tracker:
             lg.log_metrics(metrics, step=global_step)
             lg.save()      # CSVLogger 는 save() 해야 디스크에 감 - tail -F 용
 
+    def log_hyperparams(self, params):
+        """run 내내 **안 변하는 값**을 run 의 속성으로 남김 - 파라미터 수처럼.
+
+        log_metrics 와 다른 점은 **시계열이 아니라는 것**임. 파라미터 수를 log_metrics 로 보내면
+        평평한 선 하나가 그려지고 x축이 무의미해짐. log_hyperparams 로 보내면
+        CSVLogger 는 hparams.yaml 로, WandbLogger 는 run 의 config 로 넣어
+        **wandb 표에서 run 끼리 정렬·필터**가 됨(실측).
+
+        SD-FiLM 의 src/utils/logging_utils.py:30-36 이 model/params/* 를 보내는 방식과 같음 -
+        두 저장소가 같은 키 이름(`model/params/total` 등)을 쓰므로 표를 나란히 놓을 수 있음.
+        """
+        if self.enabled:
+            for lg in self.loggers:
+                lg.log_hyperparams(params)
+                lg.save()
+
     def close(self):
         """CSV 를 비우고 wandb run 을 마감함."""
         for lg in self.loggers:

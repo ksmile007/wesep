@@ -21,6 +21,7 @@ from pprint import pformat
 
 import fire
 import matplotlib.pyplot as plt
+import pandas as pd
 import tableprint as tp
 import torch
 import torch.distributed as dist
@@ -44,6 +45,7 @@ from wesep.utils.file_utils import (
 from wesep.utils.losses import parse_loss
 # <<<<< 더한 것 - precision 하나로 autocast·GradScaler 를 결정
 from wesep.utils.precision import parse_precision
+from wesep.utils.param_summary import count_params, param_metrics   # <<<<< 더한 것 (#95)
 from wesep.utils.utils import parse_config_or_kwargs, set_seed, setup_logger
 
 MAX_NUM_log_files = 100  # The maximum number of log-files to be kept
@@ -220,10 +222,18 @@ def train(config="conf/config.yaml", **kwargs):
     logger.info("<== Model ==>")
     model = get_model(
         configs["model"]["tse_model"])(**configs["model_args"]["tse_model"])
-    num_params = sum(param.numel() for param in model.parameters())
+    # <<<<< 더한 것 - 전체 합 한 줄로는 어느 묶음이 얼마나 늘었는지 안 보임 (#95).
+    #       **DDP 래핑(아래 :253) 앞에서** 셈 - 감싸면 파라미터 이름에 module. 접두사가
+    #       붙어 묶음 판정이 어긋나 spk_model 이 0 이 됨(실측).
+    #       Tracker 는 한참 뒤(:343)에야 생기므로 여기서 센 것을 들고 감.
+    #       순수 numel 합이라 난수·가중치·모듈 모드 어느 것도 안 건드림(실측).
+    #       total 행이 원본의 sum(p.numel() ...) 과 같은 값이라 한 번만 훑음
+    param_rows = count_params(model)
+    num_params = next(row["params"] for row in param_rows if row["group"] == "total")
 
     if rank == 0:
         logger.info("tse_model size: {:.2f} M".format(num_params / 1e6))
+        logger.info(f"\n{pd.DataFrame(param_rows).to_string(index=False)}")
         # print model
         for line in pformat(model).split("\n"):
             logger.info(line)
@@ -334,6 +344,13 @@ def train(config="conf/config.yaml", **kwargs):
     #       각자 자기 몫(train/* · val/*)을 씀
     executor = Executor(configs, logger)
     executor.step = 0
+    # <<<<< 더한 것 - 위 :231 에서 센 파라미터를 CSV·텐서보드·wandb 에도 남김 (#95).
+    #       로그 파일은 run 폴더 안에만 있어 run 끼리 나란히 못 봄.
+    #       지표(log_metrics)가 아니라 **하이퍼파라미터**로 보냄 - 학습 내내 안 변하는 값이라
+    #       시계열로 두면 평평한 선만 생기고, hparams 로 두면 wandb 표에서 run 끼리
+    #       정렬·필터가 됨. SD-FiLM 의 logging_utils.py:30-36 과 같은 방식임.
+    #       rank 판정은 Tracker 가 함
+    executor.tracker.log_hyperparams(param_metrics(param_rows))
 
     train_losses = []
     val_losses = []
