@@ -371,6 +371,8 @@ def train(config="conf/config.yaml", **kwargs):
             enable_amp=enable_amp,
             amp_dtype=amp_dtype,
             clip_grad=configs["clip_grad"],
+            # <<<<< 더한 것 - #93. 키가 없는 기존 config 는 원본 방식(loop) 그대로
+            clip_grad_mode=configs.get("clip_grad_mode", "loop"),
             log_batch_interval=configs["log_batch_interval"],
             device=device,
             se_loss_weight=loss_args,

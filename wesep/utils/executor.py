@@ -31,7 +31,8 @@ import torch.distributed as dist
 # <<<<< 더한 것 - #93 조사용 프로파일러 (StepProfiler)
 from torch.profiler import ProfilerActivity, profile, record_function, schedule
 
-from wesep.utils.funcs import clip_gradients, compute_fbank, apply_cmvn
+from wesep.utils.funcs import (clip_gradients, clip_gradients_foreach, clip_gradients_nosync,
+                               compute_fbank, apply_cmvn)
 # <<<<< 더한 것 - CSV·텐서보드·wandb 기록을 맡는 클래스
 from wesep.utils.tracker import Tracker
 import random
@@ -163,11 +164,22 @@ class Executor:
             # <<<<< 더한 것 - autocast 의 dtype. None 이면 torch 기본값(fp16).
             #       precision='bf16-mixed' 면 bfloat16 이 들어옴
             amp_dtype=None,
+            # <<<<< 더한 것 - 기울기 자르기 방식 (#93). 셋 다 파라미터별 자르기임
+            #       loop    = 원본 clip_gradients — 텐서마다 GPU 를 기다림
+            #       nosync  = 같은 연산을 기다리지 않고 — 결과 비트 동일
+            #       foreach = 노름을 한 번에 — 결과가 미세하게 다름
+            clip_grad_mode="loop",
     ):
         """Train one epoch"""
         model = models[0]
         optimizer = optimizers[0]
         scheduler = schedulers[0]
+        # 값이 yaml 에서 오므로 오타는 설정 오류로 멈춤
+        clip_fns = {"loop": clip_gradients, "nosync": clip_gradients_nosync,
+                    "foreach": clip_gradients_foreach}
+        if clip_grad_mode not in clip_fns:
+            raise ValueError(f"clip_grad_mode 는 {list(clip_fns)} 중 하나여야 함 — {clip_grad_mode!r}")
+        clip_fn = clip_fns[clip_grad_mode]
 
         model.train()
         log_interval = log_batch_interval
@@ -289,7 +301,7 @@ class Executor:
                     scaler.scale(loss).backward()
                 with rf("5_clip"):
                     scaler.unscale_(optimizer)
-                    clip_gradients(model, clip_grad)
+                    clip_fn(model, clip_grad)
                 with rf("6_opt_step"):
                     scaler.step(optimizer)
                     scaler.update()

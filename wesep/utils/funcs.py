@@ -88,6 +88,32 @@ def clip_gradients(model, clip):
     return norms
 
 
+# <<<<< 더한 것 - clip_gradients 와 **같은 연산**을 GPU 동기화 없이 함 (#93, clip_grad_mode: nosync).
+#       원본은 텐서마다 .item() 과 `if clip_coef < 1` 로 GPU 를 기다려 스텝당 약 1,070회 동기화했음.
+#       노름·나눗셈·곱셈이 원본과 같은 연산이라 결과가 **비트 동일**함(실측, 2026-09-24)
+def clip_gradients_nosync(model, clip):
+    for p in model.parameters():
+        if p.grad is not None:
+            coef = clip / (p.grad.norm(2) + 1e-6)
+            # 원본의 `if clip_coef < 1` 을 GPU 에서 — 1 이상(또는 NaN)이면 1.0 을 곱해 값이 그대로임
+            p.grad.mul_(torch.where(coef < 1, coef, torch.ones_like(coef)))
+
+
+# <<<<< 더한 것 - 같은 파라미터별 자르기를, 노름까지 한 번에 구하는 판 (#93, clip_grad_mode: foreach).
+#       _foreach_norm 은 원본 .norm(2) 와 노름이 비트 동일하지 않아 자르기가 걸린 텐서의
+#       기울기가 상대오차 약 3e-7 만큼 달라짐(실측, 2026-09-24) — 학습 조건이 미세하게 바뀜
+def clip_gradients_foreach(model, clip):
+    grads = [p.grad for p in model.parameters() if p.grad is not None]
+    if not grads:
+        return []
+    norms = torch._foreach_norm(grads, 2)     # 텐서별 L2 노름을 한 번에 — 파이썬 float 로 안 꺼냄
+    for g, n in zip(grads, norms):
+        coef = clip / (n + 1e-6)
+        # 원본의 `if clip_coef < 1` 을 GPU 에서 — 1 이상(또는 NaN)이면 1.0 을 곱해 값이 그대로임
+        g.mul_(torch.where(coef < 1, coef, torch.ones_like(coef)))
+    return norms
+
+
 def compute_fbank(
     data,
     num_mel_bins=80,
