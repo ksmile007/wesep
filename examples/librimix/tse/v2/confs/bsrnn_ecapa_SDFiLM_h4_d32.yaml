@@ -1,0 +1,14 @@
+# >>>>> SD-FiLM ablation 칸 — qh=kvh=4 · qkd=vd=32 (#94, 2026-09-26 사용자 결정).
+#       bsrnn_ecapa_SDFiLM.yaml(SD-FiLM 공통) 을 defaults 로 상속하고 factors 만 채움.
+#       h·d = 128 = min(q_dim, kv_dim) 이라 full-rank 칸임 — bsrnn_ecapa_SDFiLM_h2_d64.yaml 과 파라미터가 같음.
+#       조건화 파라미터 180,864 = FiLM 49,408 의 3.66배 (SpeakerFuseLayer 실측, 식 1411·h·d + 256).
+
+defaults:
+  - bsrnn_ecapa_SDFiLM
+  - _self_
+
+factors:
+  qh:  4
+  kvh: 4
+  qkd: 32
+  vd:  32

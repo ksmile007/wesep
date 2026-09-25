@@ -1,0 +1,18 @@
+# >>>>> SD-FiLM full-rank 칸 — qh=kvh=2 · qkd=vd=64 (#94, 2026-09-26 사용자 결정).
+#       bsrnn_ecapa_SDFiLM.yaml(SD-FiLM 공통) 을 defaults 로 상속하고 factors 만 채움 —
+#       기본 칸(bsrnn_ecapa_SDFiLM_h2_d8.yaml)과는 qkd=vd 한 축만 다른 ablation 임.
+#
+#       full-rank 는 h·d = min(q_dim, kv_dim) = min(128, 512) = 128 로 정함 — attention 점수(128↔512)와
+#       value→γ·β(512→128) 두 사상의 rank 가 128 에서 막히므로 그 이상은 파라미터만 늘어남.
+#       M2D-CLAPSep 의 768(q_dim = kv_dim = 768) 과 같은 정의임.
+#       조건화 파라미터 180,864 = FiLM 49,408 의 3.66배 (SpeakerFuseLayer 실측, 식 1411·h·d + 256).
+
+defaults:
+  - bsrnn_ecapa_SDFiLM
+  - _self_
+
+factors:
+  qh:  2
+  kvh: 2
+  qkd: 64
+  vd:  64

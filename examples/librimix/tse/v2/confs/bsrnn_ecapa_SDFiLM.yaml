@@ -1,0 +1,47 @@
+# >>>>> SD-FiLM 공통 칸 (#81·#83·#94). 혼자 돌지 않음 — 칸 파일 bsrnn_ecapa_SDFiLM_h*_d*.yaml 이
+#       이 파일을 defaults 로 상속하고 factors 만 채움.
+#
+#       base 는 bsrnn_ecapa_FiLM.yaml 이고 spk_model_eval: True 를 아래에 직접 적음 —
+#       bsrnn_ecapa_FiLM_spkeval.yaml 이 FiLM 에 이 한 줄만 더한 파일이라, 비교 기준인 #85 재학습 run
+#       bsrnn_ecapa_FiLM_spkeval-16 과 같은 조건임. 복사본이 아니므로 base 를 고치면 칸들도 같이 따라감.
+#       기존 run bsrnn_ecapa_sdfilm_spkeval-16·-bf16(qh=kvh=12) 의 config 는 bsrnn_ecapa_sdfilm_spkeval.yaml 로 따로 둠.
+#
+#       defaults 는 wesep/utils/utils.py 의 load_config_with_base() 가 hydra 의 Compose API
+#       로 합성함. 이름은 확장자 없이 적고 같은 폴더의 yaml 을 가리킴.
+#       `- _self_` 가 마지막이라 이 파일의 키가 부모를 덮어씀 — 순서를 뒤집으면 반대가 됨.
+#       ${factors.*} 는 칸 파일까지 합성한 뒤에 풀리므로 칸의 값이 아래 exp_dir · spk_fuse_kwargs 로 들어감.
+#       stage 3 이 exp_dir/config.yaml 로 저장할 때는 이미 합성·해석이 끝난 판이 나가므로
+#       stage 5 (infer.py) 가 그것을 그대로 읽어도 됨.
+
+defaults:
+  - bsrnn_ecapa_FiLM
+  - _self_
+
+# 실험 정체 - 값의 원본은 칸 파일의 factors 하나뿐이고 아래 exp_dir · spk_fuse_kwargs 가 ${factors.*} 로 참조함 (#94).
+# 여기는 자리만 둠(null) - 칸 파일 없이 이 파일만 쓰면 None 이 들어가 SD-FiLM 모듈 생성에서 멈춤.
+# 최상위에 둘 것 - model_args.tse_model 아래면 BSRNN(**...) 에 모르는 인자로 들어감
+factors:
+  qh:  null
+  kvh: null
+  qkd: null
+  vd:  null
+
+# run.sh 가 --exp_dir 로 덮어쓰므로 train.py 를 직접 부를 때만 쓰임. kvh · vd 는 이름에 없어 GQA 칸을 만들면 이름이 겹침
+exp_dir: exp/BSRNN_sdfilm_h${factors.qh}_d${factors.qkd}
+
+model_args:
+  tse_model:
+    spk_model_eval: True  # 동결 인코더를 학습 중에도 eval 로 둬 BatchNorm 통계까지 얼림 (#85) - FiLM_spkeval 과 같은 값
+
+    spk_fuse_type: 'SDFiLM'
+    # 토큰 축은 밴드x시간 — 조건화 파라미터는 1411·h·d + 256 (h=qh=kvh, d=qkd=vd), FiLM 은 49,408.
+    # 시간축으로 잡으면 q_dim 이 4096 이 되어 h=2·d=8 에서도 4.48배(221,232) — "FiLM 보다 파라미터를 줄인다" 는 주장과 충돌함.
+    # q_dim 은 여기 적지 않음 — feature_dim(128) 에서 유도하고, 적으면 ValueError 로 막힘.
+    spk_fuse_kwargs:
+      k_dim: 512              # ECAPA_TDNN_GLOB_c512 의 프레임 특징 채널. 인코더를 바꾸면 같이 고칠 것
+      v_dim: 512
+      num_q_heads:  ${factors.qh}
+      num_kv_heads: ${factors.kvh}
+      qk_head_dim:  ${factors.qkd}
+      v_head_dim:   ${factors.vd}
+      cond_variant: 'sdfilm_mhca_shared'

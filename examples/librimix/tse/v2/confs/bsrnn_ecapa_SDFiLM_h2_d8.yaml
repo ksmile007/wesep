@@ -1,0 +1,13 @@
+# >>>>> SD-FiLM 기본 칸 — qh=kvh=2 · qkd=vd=8 (#94, 2026-09-26 사용자 결정).
+#       bsrnn_ecapa_SDFiLM.yaml(SD-FiLM 공통) 을 defaults 로 상속하고 factors 를 채움.
+#       조건화 파라미터 22,832 = FiLM 49,408 의 0.46배 (SpeakerFuseLayer 실측, 식 1411·h·d + 256).
+
+defaults:
+  - bsrnn_ecapa_SDFiLM
+  - _self_
+
+factors:
+  qh:  2
+  kvh: 2
+  qkd: 8
+  vd:  8
