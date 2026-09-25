@@ -18,7 +18,7 @@ exp_dir: exp/BSRNN_sdfilm
 
 model_args:
   tse_model:
-    spk_fuse_type: 'sdfilm'
+    spk_fuse_type: 'SDFiLM'
     # 토큰 축은 밴드x시간 — 조건화 파라미터가 FiLM 의 2.7배(135,712 대 49,408).
     # 시간축으로 잡으면 26배가 되어 "FiLM 보다 파라미터를 줄인다" 는 주장과 충돌함.
     # q_dim 은 여기 적지 않음 — feature_dim(128) 에서 유도하고, 적으면 ValueError 로 막힘.

@@ -8,6 +8,7 @@ import torch.nn as nn
 import torchaudio
 from wespeaker.models.speaker_model import get_speaker_model
 
+from wesep.modules.common.speaker import FUSE_TYPE_ALIASES   # <<<<< 더한 것 - 옛 표기 'sdfilm' 받기
 from wesep.modules.common.speaker import PreEmphasis
 from wesep.modules.common.speaker import SpeakerFuseLayer
 from wesep.modules.common.speaker import SpeakerTransform
@@ -198,6 +199,7 @@ class BSRNN(nn.Module):
         self.feat_type = feat_type
         self.spk_model_freeze = spk_model_freeze
         self.spk_model_eval = spk_model_eval   # <<<<< 더한 것 (#85)
+        spk_fuse_type = FUSE_TYPE_ALIASES.get(spk_fuse_type, spk_fuse_type)   # <<<<< 더한 것 - 옛 표기를 정식 이름으로
         self.spk_fuse_type = spk_fuse_type     # <<<<< 더한 것 - forward 의 조건 모양 분기용 (#81)
         self.multi_task = multi_task
 
@@ -205,9 +207,9 @@ class BSRNN(nn.Module):
         #       SpeakerTransform 은 embed_dim=256 으로 만들어져 512 채널을 못 받는다.
         #       Table 2 config 4벌이 use_spk_transform: False 라 실제로 걸리지 않지만,
         #       True 로 켜면 조용히 죽는 대신 여기서 이유를 말하고 멈춘다 (#83).
-        if spk_fuse_type == "sdfilm" and use_spk_transform:
+        if spk_fuse_type == "SDFiLM" and use_spk_transform:
             raise ValueError(
-                "spk_fuse_type='sdfilm' 은 use_spk_transform=True 와 같이 못 쓴다 - "
+                "spk_fuse_type='SDFiLM' 은 use_spk_transform=True 와 같이 못 쓴다 - "
                 "SpeakerTransform 이 풀링 벡터(embed_dim)용이라 프레임 채널 512 를 "
                 "받지 못한다 (#83).")
 
@@ -411,10 +413,10 @@ class BSRNN(nn.Module):
         #       SD-FiLM 이 FiLM 으로 퇴화한다. (B, 512, T_spk) 를 그대로 넘기고
         #       (B, T_spk, 512) 로의 전치는 SpeakerFuseLayer 가 einops 로 한다.
         #       pred_linear(multi_task) 는 위에서 풀링 벡터를 그대로 쓰므로 영향이 없다.
-        if self.spk_fuse_type == "sdfilm":
+        if self.spk_fuse_type == "SDFiLM":
             if spk_frame_feat is None:
                 raise ValueError(
-                    "spk_fuse_type='sdfilm' 은 프레임 시퀀스가 필요하다 - "
+                    "spk_fuse_type='SDFiLM' 은 프레임 시퀀스가 필요하다 - "
                     "joint_training=True 이고 튜플을 돌려주는 화자 인코더여야 한다 (#81).")
             spk_embedding = spk_frame_feat                        # (B, 512, T_spk)
         else:
